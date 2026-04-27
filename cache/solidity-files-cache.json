@@ -1,0 +1,564 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "C:\\Sum\\CPSC 559 - Advance Blockchain Technologies Mid Term Project (Sumit Singh)\\Final Project\\Event-Management-diamond-cut-Dapp-main\\contracts\\Diamond.sol": {
+      "lastModificationDate": 1777243353053,
+      "contentHash": "04e9e2b71699effee77e0d6c02670bab",
+      "sourceName": "contracts/Diamond.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./libraries/LibDiamond.sol",
+        "./interfaces/IDiamondCut.sol",
+        "./interfaces/IDiamondLoupe.sol",
+        "./interfaces/IERC173.sol",
+        "./interfaces/IERC165.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "Diamond"
+      ]
+    },
+    "C:\\Sum\\CPSC 559 - Advance Blockchain Technologies Mid Term Project (Sumit Singh)\\Final Project\\Event-Management-diamond-cut-Dapp-main\\contracts\\interfaces\\IDiamondCut.sol": {
+      "lastModificationDate": 1777243353053,
+      "contentHash": "c9e3bbcde94da45836073b2496656165",
+      "sourceName": "contracts/interfaces/IDiamondCut.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./IDiamond.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IDiamondCut"
+      ]
+    },
+    "C:\\Sum\\CPSC 559 - Advance Blockchain Technologies Mid Term Project (Sumit Singh)\\Final Project\\Event-Management-diamond-cut-Dapp-main\\contracts\\libraries\\LibDiamond.sol": {
+      "lastModificationDate": 1777243353053,
+      "contentHash": "8a3c487fa836fb92117756595788ec75",
+      "sourceName": "contracts/libraries/LibDiamond.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../interfaces/IDiamond.sol",
+        "../interfaces/IDiamondCut.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "LibDiamond"
+      ]
+    },
+    "C:\\Sum\\CPSC 559 - Advance Blockchain Technologies Mid Term Project (Sumit Singh)\\Final Project\\Event-Management-diamond-cut-Dapp-main\\contracts\\interfaces\\IERC173.sol": {
+      "lastModificationDate": 1777243353053,
+      "contentHash": "8c8b7a366621da275d7811a4853edef2",
+      "sourceName": "contracts/interfaces/IERC173.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IERC173"
+      ]
+    },
+    "C:\\Sum\\CPSC 559 - Advance Blockchain Technologies Mid Term Project (Sumit Singh)\\Final Project\\Event-Management-diamond-cut-Dapp-main\\contracts\\interfaces\\IDiamondLoupe.sol": {
+      "lastModificationDate": 1777243353053,
+      "contentHash": "191dce27d7cd398923393695d06e959c",
+      "sourceName": "contracts/interfaces/IDiamondLoupe.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IDiamondLoupe"
+      ]
+    },
+    "C:\\Sum\\CPSC 559 - Advance Blockchain Technologies Mid Term Project (Sumit Singh)\\Final Project\\Event-Management-diamond-cut-Dapp-main\\contracts\\interfaces\\IERC165.sol": {
+      "lastModificationDate": 1777243353053,
+      "contentHash": "cde5c5067f520e41a0e49fbc8fac82e3",
+      "sourceName": "contracts/interfaces/IERC165.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IERC165"
+      ]
+    },
+    "C:\\Sum\\CPSC 559 - Advance Blockchain Technologies Mid Term Project (Sumit Singh)\\Final Project\\Event-Management-diamond-cut-Dapp-main\\contracts\\interfaces\\IDiamond.sol": {
+      "lastModificationDate": 1777243353053,
+      "contentHash": "0951c4a3abe04e83667a3db2a346ff24",
+      "sourceName": "contracts/interfaces/IDiamond.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IDiamond"
+      ]
+    },
+    "C:\\Sum\\CPSC 559 - Advance Blockchain Technologies Mid Term Project (Sumit Singh)\\Final Project\\Event-Management-diamond-cut-Dapp-main\\contracts\\upgradeInitializers\\DiamondInit.sol": {
+      "lastModificationDate": 1777243353053,
+      "contentHash": "8d0e50b6121396354c2040415a489a58",
+      "sourceName": "contracts/upgradeInitializers/DiamondInit.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../libraries/LibDiamond.sol",
+        "../interfaces/IDiamondLoupe.sol",
+        "../interfaces/IDiamondCut.sol",
+        "../interfaces/IERC173.sol",
+        "../interfaces/IERC165.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "DiamondInit"
+      ]
+    },
+    "C:\\Sum\\CPSC 559 - Advance Blockchain Technologies Mid Term Project (Sumit Singh)\\Final Project\\Event-Management-diamond-cut-Dapp-main\\contracts\\facets\\OwnershipFacet.sol": {
+      "lastModificationDate": 1777243353053,
+      "contentHash": "2ea5869c9488b2d82208e57d0050f4a3",
+      "sourceName": "contracts/facets/OwnershipFacet.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../libraries/LibDiamond.sol",
+        "../interfaces/IERC173.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "OwnershipFacet"
+      ]
+    },
+    "C:\\Sum\\CPSC 559 - Advance Blockchain Technologies Mid Term Project (Sumit Singh)\\Final Project\\Event-Management-diamond-cut-Dapp-main\\contracts\\upgradeInitializers\\DiamondMultiInit.sol": {
+      "lastModificationDate": 1777243353053,
+      "contentHash": "76add1fe276bf727023343663c3b9217",
+      "sourceName": "contracts/upgradeInitializers/DiamondMultiInit.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../libraries/LibDiamond.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "DiamondMultiInit"
+      ]
+    },
+    "C:\\Sum\\CPSC 559 - Advance Blockchain Technologies Mid Term Project (Sumit Singh)\\Final Project\\Event-Management-diamond-cut-Dapp-main\\contracts\\facets\\DiamondCutFacet.sol": {
+      "lastModificationDate": 1777243353053,
+      "contentHash": "4da2f4962182d11abc21a1f06c76e065",
+      "sourceName": "contracts/facets/DiamondCutFacet.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../interfaces/IDiamondCut.sol",
+        "../libraries/LibDiamond.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "DiamondCutFacet"
+      ]
+    },
+    "C:\\Sum\\CPSC 559 - Advance Blockchain Technologies Mid Term Project (Sumit Singh)\\Final Project\\Event-Management-diamond-cut-Dapp-main\\contracts\\facets\\GetDeployedEventsFacet.sol": {
+      "lastModificationDate": 1777243353053,
+      "contentHash": "388e521bf38bbfde224bc2851781cdd8",
+      "sourceName": "contracts/facets/GetDeployedEventsFacet.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../libraries/LibDiamond.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "GetDeployedEventsFacet"
+      ]
+    },
+    "C:\\Sum\\CPSC 559 - Advance Blockchain Technologies Mid Term Project (Sumit Singh)\\Final Project\\Event-Management-diamond-cut-Dapp-main\\contracts\\facets\\DiamondLoupeFacet.sol": {
+      "lastModificationDate": 1777244090181,
+      "contentHash": "ca2d0a6e166275366783cae6bfbedf26",
+      "sourceName": "contracts/facets/DiamondLoupeFacet.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../libraries/LibDiamond.sol",
+        "../interfaces/IDiamondLoupe.sol",
+        "../interfaces/IERC165.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "DiamondLoupeFacet"
+      ]
+    },
+    "C:\\Sum\\CPSC 559 - Advance Blockchain Technologies Mid Term Project (Sumit Singh)\\Final Project\\Event-Management-diamond-cut-Dapp-main\\contracts\\facets\\CreateEventFacet.sol": {
+      "lastModificationDate": 1777243353053,
+      "contentHash": "7188b40ef06e0bf255f90a421168e66c",
+      "sourceName": "contracts/facets/CreateEventFacet.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../libraries/LibDiamond.sol",
+        "../libraries/Event.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "CreateEventFacet"
+      ]
+    },
+    "C:\\Sum\\CPSC 559 - Advance Blockchain Technologies Mid Term Project (Sumit Singh)\\Final Project\\Event-Management-diamond-cut-Dapp-main\\contracts\\libraries\\Event.sol": {
+      "lastModificationDate": 1777243353053,
+      "contentHash": "b67d7aa6edaffbc27e1e37472488916b",
+      "sourceName": "contracts/libraries/Event.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "Event"
+      ]
+    }
+  }
+}

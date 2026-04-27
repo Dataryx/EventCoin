@@ -1,0 +1,29 @@
+{
+  "name": "event-dapp-truffle",
+  "version": "1.0.0",
+  "description": "Event Management Dapp using diamond cut",
+  "author": "Bhanu Sai",
+  "license": "CC0-1.0",
+  "devDependencies": {
+    "chai": "^4.3.6",
+    "truffle": "^5.11.5"
+  },
+  "scripts": {
+    "compile": "truffle compile",
+    "migrate": "truffle migrate --network development",
+    "migrate:reset": "truffle migrate --reset --network development",
+    "test": "truffle test",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "next": "^14.2.5",
+    "next-routes": "^1.4.2",
+    "qrcode.react": "^4.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "semantic-ui-css": "^2.5.0",
+    "semantic-ui-react": "^2.1.5",
+    "web3": "^4.11.0"
+  }
+}

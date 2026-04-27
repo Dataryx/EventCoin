@@ -1,0 +1,80 @@
+ ⨯ ./ethereum/factory.js:2:1
+Module not found: Can't resolve '../artifacts/contracts/facets/CreateEventFacet.sol/CreateEventFacet.json'
+[0m [90m 1 |[39m [36mimport[39m web3 [36mfrom[39m [32m'./web3'[39m[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 2 |[39m [36mimport[39m [33mEventFactory[39m [36mfrom[39m [32m'../artifacts/contracts/facets/CreateEventFacet.sol/CreateEventFacet.json'[39m[33m;[39m[0m
+[0m [90m   |[39m [31m[1m^[22m[39m[0m
+[0m [90m 3 |[39m [36mimport[39m deployedEvents [36mfrom[39m [32m'../artifacts/contracts/facets/GetDeployedEventsFacet.sol/GetDeployedEventsFacet.json'[39m[33m;[39m[0m
+[0m [90m 4 |[39m[0m
+[0m [90m 5 |[39m [36mconst[39m createEventInstance [33m=[39m [36mnew[39m web3[33m.[39meth[33m.[39m[33mContract[39m([0m
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./pages/index.js
+ ⨯ ./ethereum/factory.js:2:1
+Module not found: Can't resolve '../artifacts/contracts/facets/CreateEventFacet.sol/CreateEventFacet.json'
+[0m [90m 1 |[39m [36mimport[39m web3 [36mfrom[39m [32m'./web3'[39m[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 2 |[39m [36mimport[39m [33mEventFactory[39m [36mfrom[39m [32m'../artifacts/contracts/facets/CreateEventFacet.sol/CreateEventFacet.json'[39m[33m;[39m[0m
+[0m [90m   |[39m [31m[1m^[22m[39m[0m
+[0m [90m 3 |[39m [36mimport[39m deployedEvents [36mfrom[39m [32m'../artifacts/contracts/facets/GetDeployedEventsFacet.sol/GetDeployedEventsFacet.json'[39m[33m;[39m[0m
+[0m [90m 4 |[39m[0m
+[0m [90m 5 |[39m [36mconst[39m createEventInstance [33m=[39m [36mnew[39m web3[33m.[39meth[33m.[39m[33mContract[39m([0m
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./pages/index.js
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⨯ InvalidClientError: Client URL "undefined" is invalid.
+    at new HttpProvider (file:///C:/Sum/CPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)/Final%20Project/Event-Management-diamond-cut-Dapp-main/node_modules/web3-providers-http/lib/esm/index.js:33:19)
+    at eval (webpack-internal:///./ethereum/web3.js:17:22) {
+  cause: undefined,
+  code: 602,
+  page: '/'
+}
+ ⨯ InvalidClientError: Client URL "undefined" is invalid.
+    at new HttpProvider (file:///C:/Sum/CPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)/Final%20Project/Event-Management-diamond-cut-Dapp-main/node_modules/web3-providers-http/lib/esm/index.js:33:19)
+    at eval (webpack-internal:///./ethereum/web3.js:17:22) {
+  cause: undefined,
+  code: 602,
+  page: '/'
+}
+ ⨯ InvalidClientError: Client URL "undefined" is invalid.
+    at new HttpProvider (file:///C:/Sum/CPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)/Final%20Project/Event-Management-diamond-cut-Dapp-main/node_modules/web3-providers-http/lib/esm/index.js:33:19)
+    at eval (webpack-internal:///./ethereum/web3.js:17:22) {
+  cause: undefined,
+  code: 602,
+  page: '/'
+}
+ ⨯ InvalidClientError: Client URL "undefined" is invalid.
+    at new HttpProvider (file:///C:/Sum/CPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)/Final%20Project/Event-Management-diamond-cut-Dapp-main/node_modules/web3-providers-http/lib/esm/index.js:33:19)
+    at eval (webpack-internal:///./ethereum/web3.js:17:22) {
+  cause: undefined,
+  code: 602,
+  page: '/'
+}
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⨯ InvalidAddressError: Invalid value given "replace with your deployed diamond contract address". Error: invalid ethereum address.
+    at toChecksumAddress (file:///C:/Sum/CPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)/Final%20Project/Event-Management-diamond-cut-Dapp-main/node_modules/web3-eth-contract/node_modules/web3-utils/lib/esm/converters.js:555:15)
+    at ContractBuilder._parseAndSetAddress (file:///C:/Sum/CPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)/Final%20Project/Event-Management-diamond-cut-Dapp-main/node_modules/web3-eth-contract/lib/esm/contract.js:621:15)
+    at new Contract (file:///C:/Sum/CPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)/Final%20Project/Event-Management-diamond-cut-Dapp-main/node_modules/web3-eth-contract/lib/esm/contract.js:308:18)
+    at new ContractBuilder (file:///C:/Sum/CPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)/Final%20Project/Event-Management-diamond-cut-Dapp-main/node_modules/web3/lib/esm/web3.js:113:17)
+    at eval (webpack-internal:///./ethereum/factory.js:17:47) {
+  cause: undefined,
+  code: 1005,
+  page: '/events/new'
+}
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⨯ InvalidAddressError: Invalid value given "replace with your deployed diamond contract address". Error: invalid ethereum address.
+    at toChecksumAddress (file:///C:/Sum/CPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)/Final%20Project/Event-Management-diamond-cut-Dapp-main/node_modules/web3-eth-contract/node_modules/web3-utils/lib/esm/converters.js:555:15)
+    at ContractBuilder._parseAndSetAddress (file:///C:/Sum/CPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)/Final%20Project/Event-Management-diamond-cut-Dapp-main/node_modules/web3-eth-contract/lib/esm/contract.js:621:15)
+    at new Contract (file:///C:/Sum/CPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)/Final%20Project/Event-Management-diamond-cut-Dapp-main/node_modules/web3-eth-contract/lib/esm/contract.js:308:18)
+    at new ContractBuilder (file:///C:/Sum/CPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)/Final%20Project/Event-Management-diamond-cut-Dapp-main/node_modules/web3/lib/esm/web3.js:113:17)
+    at eval (webpack-internal:///./ethereum/factory.js:17:47) {
+  cause: undefined,
+  code: 1005,
+  page: '/events/new'
+}
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.

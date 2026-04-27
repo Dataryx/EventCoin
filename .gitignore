@@ -1,0 +1,5 @@
+node_modules
+
+# Generated contract builds
+truffle-artifacts
+.env
