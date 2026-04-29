@@ -24,12 +24,29 @@ class ClientTicketPage extends Component {
         errorMessage: ''
     };
 
+    isTicketOwnedByClient(ticket, clientAccount, clientWallet) {
+        if (clientAccount && ticket.purchaserId) {
+            return ticket.purchaserId === clientAccount;
+        }
+
+        if (clientWallet && ticket.buyerAddress) {
+            return ticket.buyerAddress.toLowerCase() === clientWallet.toLowerCase();
+        }
+
+        return false;
+    }
+
     componentDidMount() {
         try {
+            const clientAccount = window.localStorage.getItem('clientAccount') || '';
+            const clientWallet = window.localStorage.getItem('clientWallet') || '';
             const storageKey = `clientTickets:${this.props.eventAddress}`;
             const stored = window.localStorage.getItem(storageKey);
             const tickets = stored ? JSON.parse(stored) : [];
-            const ticket = tickets.find((item) => item.ticketId.toString() === this.props.ticketId.toString());
+            const ticket = tickets.find((item) =>
+                item.ticketId.toString() === this.props.ticketId.toString() &&
+                this.isTicketOwnedByClient(item, clientAccount, clientWallet)
+            );
 
             if (!ticket) {
                 this.setState({ errorMessage: 'Ticket not found in this browser wallet storage.' });

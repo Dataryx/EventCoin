@@ -2,11 +2,8 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/client/dashboard": "pages/client/dashboard.js",
-  "/admin/clients": "pages/admin/clients.js",
+  "/events/show": "pages/events/show.js",
   "/client/tickets": "pages/client/tickets.js",
-  "/admin/dashboard": "pages/admin/dashboard.js",
-  "/events/clientShow": "pages/events/clientShow.js",
-  "/": "pages/index.js",
-  "/client/login": "pages/client/login.js"
+  "/client/ticket": "pages/client/ticket.js",
+  "/client/dashboard": "pages/client/dashboard.js"
 }

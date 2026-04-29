@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import Layout from '../../components/layout';
 import Event from '../../ethereum/event';
 import web3 from '../../ethereum/web3';
+import { Router } from '../../routes';
 
 class ClientEventShow extends Component {
     static async getInitialProps(props) {
@@ -26,6 +27,7 @@ class ClientEventShow extends Component {
         errorMessage: '',
         successMessage: '',
         clientAccount: '',
+        clientWallet: '',
         purchasedTickets: [],
         copiedTicketId: '',
         quantity: 1,
@@ -40,17 +42,45 @@ class ClientEventShow extends Component {
         return `clientTickets:${this.props.contractAddress}`;
     }
 
+    isTicketOwnedByClient = (ticket, clientAccount, clientWallet) => {
+        if (clientAccount && ticket.purchaserId) {
+            return ticket.purchaserId === clientAccount;
+        }
+
+        if (clientWallet && ticket.buyerAddress) {
+            return ticket.buyerAddress.toLowerCase() === clientWallet.toLowerCase();
+        }
+
+        return false;
+    };
+
     restoreClientState = async () => {
         const clientAccount = window.localStorage.getItem('clientAccount') || '';
+        const clientWallet = window.localStorage.getItem('clientWallet') || '';
         const storedTickets = window.localStorage.getItem(this.storageKey());
-        const purchasedTickets = storedTickets ? JSON.parse(storedTickets) : [];
+        const allTickets = storedTickets ? JSON.parse(storedTickets) : [];
+        const purchasedTickets = allTickets.filter((ticket) => this.isTicketOwnedByClient(ticket, clientAccount, clientWallet));
 
-        this.setState({ clientAccount, purchasedTickets });
+        this.setState({ clientAccount, clientWallet, purchasedTickets });
     };
 
     persistTickets = (tickets) => {
-        window.localStorage.setItem(this.storageKey(), JSON.stringify(tickets));
+        const clientAccount = window.localStorage.getItem('clientAccount') || '';
+        const clientWallet = window.localStorage.getItem('clientWallet') || '';
+        const storedTickets = window.localStorage.getItem(this.storageKey());
+        const allTickets = storedTickets ? JSON.parse(storedTickets) : [];
+        const preservedTickets = allTickets.filter((ticket) => !this.isTicketOwnedByClient(ticket, clientAccount, clientWallet));
+        const nextTickets = [...preservedTickets, ...tickets];
+
+        window.localStorage.setItem(this.storageKey(), JSON.stringify(nextTickets));
         this.setState({ purchasedTickets: tickets });
+    };
+
+    handleLogout = () => {
+        window.localStorage.removeItem('clientAccount');
+        window.localStorage.removeItem('clientProfile');
+        window.localStorage.removeItem('clientWallet');
+        Router.pushRoute('/client/login');
     };
 
     createQrPayload = (ticketId, buyerAddress) => {
@@ -79,6 +109,8 @@ class ClientEventShow extends Component {
             }
 
             const buyerAddress = accounts[0];
+            const profile = JSON.parse(window.localStorage.getItem('clientProfile') || '{}');
+            const purchaserId = window.localStorage.getItem('clientAccount') || '';
             if (!this.state.cartQuantity) {
                 throw new Error('Add at least one ticket to cart before checkout.');
             }
@@ -99,17 +131,19 @@ class ClientEventShow extends Component {
                     ticketId: ticketId.toString(),
                     qrPayload,
                     buyerAddress,
-                    eventAddress: this.props.contractAddress
+                    eventAddress: this.props.contractAddress,
+                    purchaserId,
+                    purchaserName: profile.name || purchaserId
                 });
             }
 
             const nextTickets = [...newTickets, ...this.state.purchasedTickets];
             this.persistTickets(nextTickets);
-            window.localStorage.setItem('clientAccount', buyerAddress);
+            window.localStorage.setItem('clientWallet', buyerAddress);
 
             this.setState({
                 successMessage: `Checkout successful! Purchased ${this.state.cartQuantity} ticket(s).`,
-                clientAccount: buyerAddress,
+                clientWallet: buyerAddress,
                 cartQuantity: 0
             });
         } catch (err) {
@@ -150,7 +184,7 @@ class ClientEventShow extends Component {
                     <h4>Ticket #{ticket.ticketId}</h4>
                     <span className="ticket-pill">QR READY</span>
                 </div>
-                <p className="owner-row">Owner: {ticket.buyerAddress}</p>
+                <p className="owner-row">Owner: {ticket.purchaserName || ticket.purchaserId || ticket.buyerAddress}</p>
                 <div className="qr-wrap">
                     <QRCodeSVG value={ticket.qrPayload} size={180} />
                 </div>
@@ -200,6 +234,10 @@ class ClientEventShow extends Component {
                             <h2>${this.props.ticketPrice}</h2>
                             <p className="side-copy">Price per ticket</p>
                             <p className="wallet-copy">{this.state.clientAccount || 'No active client profile'}</p>
+                            <p className="wallet-copy">{this.state.clientWallet || 'Wallet not connected yet'}</p>
+                            <Button basic inverted size="small" className="client-logout-btn" onClick={this.handleLogout}>
+                                Logout
+                            </Button>
                         </div>
                     </section>
 
@@ -276,6 +314,7 @@ class ClientEventShow extends Component {
                     .hero-side h2 { margin: 8px 0 4px; font-family: 'Barlow Condensed', sans-serif; font-size: 2.6rem; }
                     .side-copy { margin: 0 0 10px; color: #dbeafe; }
                     .wallet-copy { margin: 0; color: #e2e8f0; font-size: 0.8rem; word-break: break-word; }
+                    :global(.client-logout-btn.ui.button) { margin-top: 10px; border-radius: 999px !important; font-weight: 800 !important; letter-spacing: 0.04em; }
                     .checkout-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 12px; }
                     .info-card, .checkout-card, .tickets-rail {
                         background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);

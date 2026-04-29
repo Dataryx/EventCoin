@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { Button, Message, Input } from 'semantic-ui-react';
 import { contractAddress, getDeployedEventsInstance } from '../../ethereum/factory';
 import Layout from '../../components/layout';
-import { Link } from '../../routes';
+import { Link, Router } from '../../routes';
 import Event from '../../ethereum/event';
 
 class ClientDashboard extends Component {
@@ -34,6 +34,7 @@ class ClientDashboard extends Component {
 
     state = {
         clientAccount: '',
+        clientWallet: '',
         searchTerm: '',
         selectedCategory: 'All Events',
         myTickets: []
@@ -41,21 +42,43 @@ class ClientDashboard extends Component {
 
     componentDidMount() {
         const clientAccount = window.localStorage.getItem('clientAccount') || '';
+        const clientWallet = window.localStorage.getItem('clientWallet') || '';
         const myTickets = [];
 
         Object.keys(window.localStorage).forEach((key) => {
             if (key.startsWith('clientTickets:')) {
                 try {
                     const tickets = JSON.parse(window.localStorage.getItem(key) || '[]');
-                    tickets.forEach((ticket) => myTickets.push(ticket));
+                    tickets
+                        .filter((ticket) => this.isTicketOwnedByClient(ticket, clientAccount, clientWallet))
+                        .forEach((ticket) => myTickets.push(ticket));
                 } catch (err) {
                     // Ignore malformed local entries.
                 }
             }
         });
 
-        this.setState({ clientAccount, myTickets });
+        this.setState({ clientAccount, clientWallet, myTickets });
     }
+
+    isTicketOwnedByClient(ticket, clientAccount, clientWallet) {
+        if (clientAccount && ticket.purchaserId) {
+            return ticket.purchaserId === clientAccount;
+        }
+
+        if (clientWallet && ticket.buyerAddress) {
+            return ticket.buyerAddress.toLowerCase() === clientWallet.toLowerCase();
+        }
+
+        return false;
+    }
+
+    handleLogout = () => {
+        window.localStorage.removeItem('clientAccount');
+        window.localStorage.removeItem('clientProfile');
+        window.localStorage.removeItem('clientWallet');
+        Router.pushRoute('/client/login');
+    };
 
     deriveCategory(eventName) {
         const normalized = (eventName || '').toLowerCase();
@@ -89,7 +112,42 @@ class ClientDashboard extends Component {
         } else if (selectedCategory === 'My Tickets') {
             filtered = filtered.filter((event) => myTicketEventAddresses.has(event.address));
         }
+
         return filtered;
+    }
+
+    getSellThroughPercent(event) {
+        if (!event.ticketSupply) {
+            return 0;
+        }
+
+        return Math.min(Math.round((event.ticketsSold / event.ticketSupply) * 100), 100);
+    }
+
+    formatEventSchedule(event) {
+        if (!event.eventDate) {
+            return 'DATE TO BE ANNOUNCED';
+        }
+
+        const parsed = new Date(event.eventDate);
+        if (Number.isNaN(parsed.getTime())) {
+            return event.eventDate.toUpperCase();
+        }
+
+        const weekday = parsed.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+        const month = parsed.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+        const day = parsed.toLocaleDateString('en-US', { day: 'numeric' });
+        const time = parsed.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+        return `${weekday} - ${month} ${day} - ${time}`;
+    }
+
+    getEventLocation(event) {
+        if (event.description && event.description.trim()) {
+            return event.description.trim();
+        }
+
+        return 'EventCoin Live - On-chain ticket release';
     }
 
     renderEventCards() {
@@ -104,46 +162,311 @@ class ClientDashboard extends Component {
                     <h2>LIVE EVENTS</h2>
                     <div className="line" />
                 </div>
-                <div className="events-grid">
-                    {filteredEvents.map((event, index) => {
+                <div
+                    className="events-grid"
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                        gap: '14px',
+                        alignItems: 'stretch'
+                    }}
+                >
+                    {filteredEvents.map((event) => {
                         const isSoldOut = event.ticketSupply > 0 && event.ticketsSold >= event.ticketSupply;
-                        const isFeatured = index === 0;
                         const left = Math.max(event.ticketSupply - event.ticketsSold, 0);
-                        const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][index % 12];
-                        const day = String((index % 27) + 1).padStart(2, '0');
-                        const week = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][index % 7];
+                        const schedule = this.formatEventSchedule(event);
+                        const sellThrough = this.getSellThroughPercent(event);
+                        const statusLabel = isSoldOut ? 'SOLD OUT' : sellThrough < 25 ? 'PRESALE' : 'LIVE';
+                        const availabilityLabel = event.ticketSupply > 0 ? `${left} tickets left` : 'Open inventory';
 
                         return (
-                            <article key={event.address} className={`event-card ${isSoldOut ? 'sold-out' : ''} ${isFeatured ? 'featured' : ''}`}>
-                                <div className="date-col">
-                                    {isFeatured && !isSoldOut ? <div className="featured-pill">FEATURED</div> : null}
-                                    <small className="month">{month}</small>
-                                    <span>{day}</span>
-                                    <small className="weekday">{week}</small>
-                                </div>
-                                <div className="event-main">
-                                    <h3>{event.name || 'Unnamed Event'}</h3>
-                                    {event.eventDate ? <p className="event-date">Date: {event.eventDate}</p> : null}
-                                    {event.description ? <p className="desc">{event.description}</p> : null}
-                                    <p className="venue-row">
-                                        <span className="pin">◎</span>
-                                        <span className="contract">{event.address}</span>
-                                    </p>
-                                    <div className="tags">
-                                        <span className={`tag ${isSoldOut ? 'sold' : 'live'}`}>{isSoldOut ? 'SOLD OUT' : 'LIVE NOW'}</span>
-                                        <span className="tag">QR DELIVERY</span>
-                                        <span className="tag">ON-CHAIN</span>
+                            <article
+                                key={event.address}
+                                className={`event-card ${isSoldOut ? 'sold-out' : ''}`}
+                                style={{
+                                    background: isSoldOut
+                                        ? 'linear-gradient(180deg, #ffffff 0%, #fff7f7 100%)'
+                                        : 'linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)',
+                                    borderRadius: '18px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    border: `1px solid ${isSoldOut ? '#fecaca' : '#dbeafe'}`,
+                                    overflow: 'hidden',
+                                    minHeight: '100%',
+                                    boxShadow: '0 14px 28px rgba(15, 23, 42, 0.08)'
+                                }}
+                            >
+                                <div
+                                    className="event-poster"
+                                    style={{
+                                        position: 'relative',
+                                        minHeight: '124px',
+                                        padding: '14px 16px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'space-between',
+                                        background: 'radial-gradient(circle at top right, rgba(217, 70, 239, 0.42), transparent 32%), linear-gradient(135deg, #00112c 0%, #002d72 55%, #026cdf 100%)'
+                                    }}
+                                >
+                                    <div className="poster-overlay" />
+                                    <div
+                                        className="poster-topline"
+                                        style={{
+                                            position: 'relative',
+                                            zIndex: 1,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            gap: '10px'
+                                        }}
+                                    >
+                                        <span
+                                            className={`status-badge ${isSoldOut ? 'sold' : ''}`}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                borderRadius: '999px',
+                                                padding: '7px 12px',
+                                                fontSize: '0.72rem',
+                                                textTransform: 'uppercase',
+                                                fontWeight: 800,
+                                                letterSpacing: '0.06em',
+                                                background: isSoldOut
+                                                    ? 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)'
+                                                    : 'linear-gradient(135deg, #8b2cf5 0%, #d946ef 100%)',
+                                                color: '#fff'
+                                            }}
+                                        >
+                                            {statusLabel}
+                                        </span>
+                                        <span
+                                            className="availability-pill"
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                borderRadius: '999px',
+                                                padding: '7px 12px',
+                                                fontSize: '0.72rem',
+                                                textTransform: 'uppercase',
+                                                fontWeight: 800,
+                                                letterSpacing: '0.06em',
+                                                background: 'rgba(255, 255, 255, 0.16)',
+                                                color: '#fff',
+                                                border: '1px solid rgba(255, 255, 255, 0.18)'
+                                            }}
+                                        >
+                                            {availabilityLabel}
+                                        </span>
+                                    </div>
+                                    <div
+                                        className="poster-mark"
+                                        style={{
+                                            position: 'relative',
+                                            zIndex: 1,
+                                            width: '52px',
+                                            height: '52px',
+                                            borderRadius: '16px',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            background: 'rgba(255, 255, 255, 0.14)',
+                                            border: '1px solid rgba(255, 255, 255, 0.18)',
+                                            color: '#fff',
+                                            fontFamily: "'Barlow Condensed', sans-serif",
+                                            fontSize: '1.2rem',
+                                            fontWeight: 800,
+                                            letterSpacing: '0.08em',
+                                            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.18)'
+                                        }}
+                                    >
+                                        {(event.name || 'Event')
+                                            .split(' ')
+                                            .filter(Boolean)
+                                            .slice(0, 2)
+                                            .map((word) => word[0])
+                                            .join('')
+                                            .toUpperCase() || 'EV'}
                                     </div>
                                 </div>
-                                <div className="event-price">
-                                    {!isSoldOut ? <p>FROM</p> : null}
-                                    {!isSoldOut ? <h4>${event.ticketPriceWei}</h4> : <h4 className="sold-out-text">SOLD OUT</h4>}
-                                    {!isSoldOut ? (
+
+                                <div
+                                    className="event-card-top"
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px',
+                                        padding: '12px 16px 0'
+                                    }}
+                                >
+                                    <p
+                                        className="event-schedule"
+                                        style={{
+                                            margin: 0,
+                                            color: '#54657b',
+                                            fontSize: '0.8rem',
+                                            fontWeight: 800,
+                                            letterSpacing: '0.08em',
+                                            textTransform: 'uppercase'
+                                        }}
+                                    >
+                                        {schedule}
+                                    </p>
+                                </div>
+
+                                <div
+                                    className="event-main"
+                                    style={{
+                                        padding: '8px 16px 10px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '8px',
+                                        minHeight: '168px'
+                                    }}
+                                >
+                                    <Link route={`/events/${event.address}/client`} legacyBehavior>
+                                        <a
+                                            style={{
+                                                margin: 0,
+                                                fontFamily: "'Barlow Condensed', sans-serif",
+                                                fontSize: '1.55rem',
+                                                fontWeight: 800,
+                                                lineHeight: 1.05,
+                                                color: '#003ba8',
+                                                textDecoration: 'underline',
+                                                textDecorationThickness: '2px',
+                                                textUnderlineOffset: '3px'
+                                            }}
+                                        >
+                                            {event.name || 'Unnamed Event'}
+                                        </a>
+                                    </Link>
+                                    <p
+                                        className="event-location"
+                                        style={{
+                                            margin: 0,
+                                            color: '#1e293b',
+                                            fontSize: '0.85rem',
+                                            lineHeight: 1.5
+                                        }}
+                                    >
+                                        {this.getEventLocation(event)}
+                                    </p>
+                                    <div
+                                        className="meta-strip"
+                                        style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}
+                                    >
+                                        <span className="meta-chip" style={{ display: 'inline-flex', alignItems: 'center', borderRadius: '999px', padding: '4px 8px', background: '#dbeafe', color: '#1e3a8a', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>QR Delivery</span>
+                                        <span className="meta-chip" style={{ display: 'inline-flex', alignItems: 'center', borderRadius: '999px', padding: '4px 8px', background: '#dbeafe', color: '#1e3a8a', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>On-chain</span>
+                                        <span className="meta-chip" style={{ display: 'inline-flex', alignItems: 'center', borderRadius: '999px', padding: '4px 8px', background: '#dbeafe', color: '#1e3a8a', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{event.ticketsSold} sold</span>
+                                    </div>
+                                    <p
+                                        className="contract"
+                                        style={{
+                                            margin: 'auto 0 0',
+                                            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                                            fontSize: '0.7rem',
+                                            color: '#64748b',
+                                            wordBreak: 'break-all'
+                                        }}
+                                    >
+                                        {event.address}
+                                    </p>
+                                </div>
+
+                                <div className="event-progress" style={{ padding: '0 16px 12px' }}>
+                                    <div
+                                        className="progress-copy"
+                                        style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            gap: '10px',
+                                            marginBottom: '6px',
+                                            color: '#475569',
+                                            fontSize: '0.74rem',
+                                            fontWeight: 700
+                                        }}
+                                    >
+                                        <span>Sell-through</span>
+                                        <strong style={{ color: '#0f172a' }}>{sellThrough}%</strong>
+                                    </div>
+                                    <div
+                                        className="progress-track"
+                                        style={{
+                                            height: '8px',
+                                            borderRadius: '999px',
+                                            background: '#dbeafe',
+                                            overflow: 'hidden'
+                                        }}
+                                    >
+                                        <span
+                                            className="progress-fill"
+                                            style={{
+                                                display: 'block',
+                                                width: `${sellThrough}%`,
+                                                height: '100%',
+                                                borderRadius: '999px',
+                                                background: 'linear-gradient(90deg, #00b9f2 0%, #026cdf 100%)'
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div
+                                    className="event-footer"
+                                    style={{
+                                        padding: '12px 16px 16px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: '12px',
+                                        marginTop: 'auto',
+                                        borderTop: '1px solid #dbe4f0'
+                                    }}
+                                >
+                                    <div className="price-block">
+                                        <p style={{ margin: 0, color: '#64748b', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em' }}>
+                                            {isSoldOut ? 'STATUS' : 'FROM'}
+                                        </p>
+                                        {!isSoldOut ? (
+                                            <h4 style={{ margin: '4px 0 0', color: '#002060', fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1.7rem' }}>
+                                                ${event.ticketPriceWei}
+                                            </h4>
+                                        ) : (
+                                            <h4 className="sold-out-text" style={{ margin: '4px 0 0', color: '#ef4444', fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1.1rem' }}>
+                                                SOLD OUT
+                                            </h4>
+                                        )}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                         <Link route={`/events/${event.address}/client`} legacyBehavior>
-                                            <a><Button className="buy-btn">{left > 0 ? 'BUY NOW' : 'CHECKOUT'}</Button></a>
+                                            <a style={{ color: '#003ba8', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                View Details
+                                            </a>
                                         </Link>
-                                    ) : null}
-                                    {!isSoldOut ? <small className="left-count">{left} LEFT</small> : null}
+                                        {!isSoldOut ? (
+                                            <Link route={`/events/${event.address}/client`} legacyBehavior>
+                                                <a>
+                                                    <Button
+                                                        className="buy-btn"
+                                                        style={{
+                                                            borderRadius: '999px',
+                                                            background: '#026CDF',
+                                                            color: '#fff',
+                                                            fontWeight: 800,
+                                                            letterSpacing: '0.04em',
+                                                            padding: '10px 16px'
+                                                        }}
+                                                    >
+                                                        {left > 0 ? 'Buy Tickets' : 'Open Event'}
+                                                    </Button>
+                                                </a>
+                                            </Link>
+                                        ) : (
+                                            <span className="sold-note" style={{ color: '#94a3b8', fontSize: '0.74rem', fontWeight: 700 }}>Join waitlist soon</span>
+                                        )}
+                                    </div>
                                 </div>
                             </article>
                         );
@@ -164,8 +487,13 @@ class ClientDashboard extends Component {
             <Layout>
                 <div className="tm-portal">
                     <div className="home-header">
-                        <h1>FIND YOUR NEXT EVENT</h1>
-                        <p>Connected wallet: {this.state.clientAccount || 'Not connected'}</p>
+                        <div>
+                            <h1>FIND YOUR NEXT EVENT</h1>
+                            <p>Signed in as: {this.state.clientAccount || 'Not connected'}</p>
+                        </div>
+                        <Button basic inverted className="client-logout-btn" onClick={this.handleLogout}>
+                            Logout
+                        </Button>
                     </div>
                     <div className="summary-row">
                         <div className="summary-card">
@@ -216,6 +544,10 @@ class ClientDashboard extends Component {
                         border-radius: 12px;
                         padding: 14px 16px;
                         margin-bottom: 12px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 12px;
                     }
                     .home-header h1 {
                         margin: 0;
@@ -227,6 +559,12 @@ class ClientDashboard extends Component {
                         margin: 6px 0 0;
                         color: #cbd5e1;
                         font-size: 0.85rem;
+                    }
+                    :global(.client-logout-btn.ui.button) {
+                        border-radius: 999px !important;
+                        font-weight: 800 !important;
+                        letter-spacing: 0.04em;
+                        white-space: nowrap;
                     }
                     .summary-row {
                         display: grid;
@@ -246,12 +584,9 @@ class ClientDashboard extends Component {
                         font-size: 1.35rem;
                         color: #002060;
                     }
-                    .summary-card p { margin: 4px 0; color: #334155; }
-                    .muted { color: #64748b; font-size: 0.85rem; }
-                    .event-card h3 {
-                        font-family: 'Barlow Condensed', sans-serif;
-                        font-weight: 800;
-                        letter-spacing: 0.03em;
+                    .summary-card p {
+                        margin: 4px 0;
+                        color: #334155;
                     }
                     .search-bar {
                         background: white;
@@ -279,12 +614,10 @@ class ClientDashboard extends Component {
                         color: white;
                         border-color: #026CDF;
                     }
-                    .events-list { display: flex; flex-direction: column; gap: 10px; }
-                    .events-grid {
-                        display: grid;
-                        grid-template-columns: repeat(3, minmax(0, 1fr));
-                        gap: 10px;
-                        align-items: stretch;
+                    .events-list {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 12px;
                     }
                     .section-header {
                         display: flex;
@@ -306,106 +639,255 @@ class ClientDashboard extends Component {
                         flex: 1;
                         background: #cbd5e1;
                     }
+                    .events-grid {
+                        display: grid;
+                        grid-template-columns: repeat(3, minmax(0, 1fr));
+                        gap: 16px;
+                        align-items: stretch;
+                    }
                     .event-card {
-                        background: white;
-                        border-radius: 16px;
+                        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+                        border-radius: 22px;
                         display: flex;
                         flex-direction: column;
-                        gap: 0;
-                        border: 1px solid #e2e8f0;
+                        border: 1px solid #dbeafe;
                         overflow: hidden;
-                        transition: border-color 0.2s ease, box-shadow 0.2s ease;
                         min-height: 100%;
+                        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+                        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
                     }
-                    .event-card.featured { border: 2px solid #026CDF; }
-                    .event-card:not(.featured):hover {
-                        border-color: #026CDF;
-                        box-shadow: 0 6px 18px rgba(2, 108, 223, 0.12);
+                    .event-card:hover {
+                        transform: translateY(-3px);
+                        border-color: #93c5fd;
+                        box-shadow: 0 22px 40px rgba(15, 23, 42, 0.14);
                     }
-                    .event-card.sold-out { opacity: 0.82; background: #f3f4f6; }
-                    .date-col {
-                        background: #002060;
-                        color: white;
-                        display: flex;
-                        flex-direction: row;
-                        align-items: baseline;
-                        justify-content: flex-start;
-                        gap: 8px;
-                        font-family: 'Barlow Condensed', sans-serif;
-                        font-size: 1.6rem;
+                    .event-card.sold-out {
+                        background: linear-gradient(180deg, #ffffff 0%, #fff7f7 100%);
+                        border-color: #fecaca;
+                    }
+                    .event-poster {
                         position: relative;
-                        padding: 10px 12px;
+                        min-height: 150px;
+                        padding: 16px 18px;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: space-between;
+                        background:
+                            radial-gradient(circle at top right, rgba(217, 70, 239, 0.42), transparent 32%),
+                            linear-gradient(135deg, #00112c 0%, #002d72 55%, #026cdf 100%);
                     }
-                    .featured-pill {
+                    .poster-overlay {
                         position: absolute;
-                        top: 6px;
-                        left: 6px;
-                        background: #026CDF;
-                        border-radius: 6px;
-                        padding: 2px 7px;
-                        font-size: 0.68rem;
-                        text-transform: uppercase;
-                        font-weight: 800;
-                        letter-spacing: 0.04em;
+                        inset: 0;
+                        background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(0, 0, 0, 0.12) 100%);
                     }
-                    .date-col .month { font-size: 1.1rem; color: #00B9F2; letter-spacing: 0.07em; }
-                    .date-col .weekday { font-size: 0.9rem; letter-spacing: 0.07em; opacity: 0.92; }
-                    .event-main { padding: 10px 12px 4px; }
-                    .event-main h3 {
-                        margin: 0 0 5px;
-                        font-size: 1rem;
-                        font-weight: 800;
-                        color: #0f172a;
-                    }
-                    .event-date { font-size: 0.78rem; color: #1e3a8a; font-weight: 700; }
-                    .desc { font-size: 0.8rem; color: #475569; }
-                    .event-main p { margin: 0 0 4px; color: #64748b; }
-                    .venue-row {
+                    .poster-topline {
+                        position: relative;
+                        z-index: 1;
                         display: flex;
                         align-items: center;
-                        gap: 6px;
+                        justify-content: space-between;
+                        gap: 10px;
                     }
-                    .pin {
-                        color: #94a3b8;
-                        font-size: 0.78rem;
+                    .poster-mark {
+                        position: relative;
+                        z-index: 1;
+                        width: 62px;
+                        height: 62px;
+                        border-radius: 18px;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: rgba(255, 255, 255, 0.14);
+                        border: 1px solid rgba(255, 255, 255, 0.18);
+                        color: white;
+                        font-family: 'Barlow Condensed', sans-serif;
+                        font-size: 1.45rem;
+                        font-weight: 800;
+                        letter-spacing: 0.08em;
+                        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
                     }
-                    .contract { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.75rem; color: #64748b; word-break: break-all; }
-                    .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
-                    .tag { background: #dbeafe; color: #002060; border-radius: 999px; padding: 3px 8px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; }
-                    .tag.live { background: #dcfce7; color: #00A651; }
-                    .tag.sold { background: #fee2e2; color: #E53E3E; }
-                    .event-price {
-                        padding: 10px 12px 12px;
+                    .event-card-top {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 14px 18px 0;
+                    }
+                    .status-badge,
+                    .availability-pill {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        border-radius: 999px;
+                        padding: 7px 12px;
+                        font-size: 0.72rem;
+                        text-transform: uppercase;
+                        font-weight: 800;
+                        letter-spacing: 0.06em;
+                    }
+                    .status-badge {
+                        background: linear-gradient(135deg, #8b2cf5 0%, #d946ef 100%);
+                        color: white;
+                    }
+                    .status-badge.sold {
+                        background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+                    }
+                    .availability-pill {
+                        background: rgba(255, 255, 255, 0.16);
+                        color: white;
+                        border: 1px solid rgba(255, 255, 255, 0.18);
+                    }
+                    .event-main {
+                        padding: 10px 18px 12px;
                         display: flex;
                         flex-direction: column;
-                        align-items: flex-start;
-                        justify-content: center;
-                        margin-top: auto;
-                        border-top: 1px solid #e2e8f0;
+                        gap: 10px;
+                        min-height: 210px;
                     }
-                    .event-price p { margin: 0; color: #64748b; font-size: 0.76rem; }
-                    .event-price h4 {
-                        margin: 2px 0 8px;
+                    .event-schedule {
+                        margin: 0;
+                        color: #54657b;
+                        font-size: 0.8rem;
+                        font-weight: 800;
+                        letter-spacing: 0.08em;
+                        text-transform: uppercase;
+                    }
+                    .event-main h3 {
+                        margin: 0;
+                        font-family: 'Barlow Condensed', sans-serif;
+                        font-size: 1.8rem;
+                        font-weight: 800;
+                        line-height: 1.05;
+                        color: #003ba8;
+                        text-decoration: underline;
+                        text-decoration-thickness: 2px;
+                        text-underline-offset: 3px;
+                    }
+                    .event-location {
+                        margin: 0;
+                        color: #1e293b;
+                        font-size: 0.92rem;
+                        line-height: 1.5;
+                    }
+                    .meta-strip {
+                        display: flex;
+                        gap: 6px;
+                        flex-wrap: wrap;
+                    }
+                    .meta-chip {
+                        display: inline-flex;
+                        align-items: center;
+                        border-radius: 999px;
+                        padding: 4px 8px;
+                        background: #dbeafe;
+                        color: #1e3a8a;
+                        font-size: 0.68rem;
+                        font-weight: 800;
+                        text-transform: uppercase;
+                        letter-spacing: 0.04em;
+                    }
+                    .contract {
+                        margin: auto 0 0;
+                        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                        font-size: 0.74rem;
+                        color: #64748b;
+                        word-break: break-all;
+                    }
+                    .event-progress {
+                        padding: 0 18px 14px;
+                    }
+                    .progress-copy {
+                        display: flex;
+                        justify-content: space-between;
+                        gap: 10px;
+                        margin-bottom: 8px;
+                        color: #475569;
+                        font-size: 0.78rem;
+                        font-weight: 700;
+                    }
+                    .progress-copy strong {
+                        color: #0f172a;
+                    }
+                    .progress-track {
+                        height: 8px;
+                        border-radius: 999px;
+                        background: #dbeafe;
+                        overflow: hidden;
+                    }
+                    .progress-fill {
+                        display: block;
+                        height: 100%;
+                        border-radius: 999px;
+                        background: linear-gradient(90deg, #00b9f2 0%, #026cdf 100%);
+                    }
+                    .event-footer {
+                        padding: 14px 18px 18px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 12px;
+                        margin-top: auto;
+                        border-top: 1px solid #dbe4f0;
+                    }
+                    .price-block p {
+                        margin: 0;
+                        color: #64748b;
+                        font-size: 0.72rem;
+                        font-weight: 800;
+                        letter-spacing: 0.08em;
+                    }
+                    .price-block h4 {
+                        margin: 4px 0 0;
                         color: #002060;
                         font-family: 'Barlow Condensed', sans-serif;
-                        font-size: 2.2rem;
+                        font-size: 2rem;
                     }
-                    .sold-out-text { color: #ef4444 !important; font-size: 1.45rem !important; }
+                    .sold-out-text {
+                        color: #ef4444 !important;
+                        font-size: 1.3rem !important;
+                    }
                     .buy-btn {
-                        width: 128px;
-                        border-radius: 14px !important;
+                        border-radius: 999px !important;
                         background: #026CDF !important;
                         color: #fff !important;
-                        font-weight: 700 !important;
+                        font-weight: 800 !important;
+                        letter-spacing: 0.04em;
+                        padding: 12px 18px !important;
                     }
-                    .left-count { color: #64748b; font-size: 0.72rem; margin-top: 6px; }
-                    .empty-state { color: #64748b; padding: 16px; background: white; border-radius: 12px; }
-                    @media (max-width: 1120px) {
-                        .events-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+                    .sold-note {
+                        color: #94a3b8;
+                        font-size: 0.78rem;
+                        font-weight: 700;
                     }
-                    @media (max-width: 800px) {
-                        .summary-row { grid-template-columns: 1fr; }
-                        .events-grid { grid-template-columns: 1fr; }
+                    .empty-state {
+                        color: #64748b;
+                        padding: 16px;
+                        background: white;
+                        border-radius: 12px;
+                    }
+                    @media (max-width: 700px) {
+                        .events-grid {
+                            grid-template-columns: repeat(2, minmax(0, 1fr));
+                        }
+                    }
+                    @media (max-width: 520px) {
+                        .home-header {
+                            flex-direction: column;
+                            align-items: flex-start;
+                        }
+                        .summary-row {
+                            grid-template-columns: 1fr;
+                        }
+                        .events-grid {
+                            grid-template-columns: 1fr;
+                        }
+                        .event-main {
+                            min-height: auto;
+                        }
+                        .event-footer {
+                            flex-direction: column;
+                            align-items: flex-start;
+                        }
                     }
                 `}</style>
             </Layout>

@@ -12,11 +12,6 @@
   ],
   "rootMainFiles": [],
   "pages": {
-    "/": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/index.js"
-    ],
     "/_app": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
@@ -27,35 +22,20 @@
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
-    "/admin/clients": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/admin/clients.js"
-    ],
-    "/admin/dashboard": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/admin/dashboard.js"
-    ],
     "/client/dashboard": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
       "static/chunks/pages/client/dashboard.js"
-    ],
-    "/client/login": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/client/login.js"
     ],
     "/client/tickets": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
       "static/chunks/pages/client/tickets.js"
     ],
-    "/events/clientShow": [
+    "/events/show": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/events/clientShow.js"
+      "static/chunks/pages/events/show.js"
     ]
   },
   "ampFirstPages": []
