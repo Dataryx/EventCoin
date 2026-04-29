@@ -27,20 +27,10 @@
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
-    "/admin/audit-logs": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/admin/audit-logs.js"
-    ],
     "/admin/dashboard": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
       "static/chunks/pages/admin/dashboard.js"
-    ],
-    "/admin/events": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/admin/events.js"
     ],
     "/admin/integrations": [
       "static/chunks/webpack.js",
@@ -57,10 +47,10 @@
       "static/chunks/main.js",
       "static/chunks/pages/admin/ticket-validation.js"
     ],
-    "/events/owners/validateTicket": [
+    "/client/login": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/events/owners/validateTicket.js"
+      "static/chunks/pages/client/login.js"
     ]
   },
   "ampFirstPages": []
