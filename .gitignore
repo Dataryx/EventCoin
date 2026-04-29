@@ -3,3 +3,7 @@ node_modules
 # Generated contract builds
 truffle-artifacts
 .env
+
+.next/
+node_modules/
+.env

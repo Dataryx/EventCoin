@@ -3,7 +3,9 @@ import { Message, Button, Icon } from 'semantic-ui-react';
 import { QRCodeSVG } from 'qrcode.react';
 import Layout from '../../components/layout';
 import Event from '../../ethereum/event';
-import { Router, Link } from '../../routes';
+import { getClientSession, isTicketOwnedByClient } from '../../ethereum/clientSession';
+import { reconcileClientTicketsForEvent } from '../../ethereum/clientTickets';
+import { Link } from '../../routes';
 
 class ClientTicketsPage extends Component {
     state = {
@@ -15,54 +17,25 @@ class ClientTicketsPage extends Component {
         copiedTicketKey: ''
     };
 
-    isTicketOwnedByClient(ticket, clientAccount, clientWallet) {
-        if (clientAccount && ticket.purchaserId) {
-            return ticket.purchaserId === clientAccount;
-        }
-
-        if (clientWallet && ticket.buyerAddress) {
-            return ticket.buyerAddress.toLowerCase() === clientWallet.toLowerCase();
-        }
-
-        return false;
-    }
-
-    handleLogout = () => {
-        window.localStorage.removeItem('clientAccount');
-        window.localStorage.removeItem('clientProfile');
-        window.localStorage.removeItem('clientWallet');
-        Router.pushRoute('/client/login');
-    };
-
     async componentDidMount() {
         try {
-            const clientAccount = window.localStorage.getItem('clientAccount') || '';
-            const clientWallet = window.localStorage.getItem('clientWallet') || '';
-            const baseTickets = [];
-
-            Object.keys(window.localStorage).forEach((key) => {
-                if (key.startsWith('clientTickets:')) {
-                    const eventAddress = key.split(':')[1];
-                    try {
-                        const parsed = JSON.parse(window.localStorage.getItem(key) || '[]');
-                        parsed
-                            .filter((ticket) => this.isTicketOwnedByClient(ticket, clientAccount, clientWallet))
-                            .forEach((ticket) => {
-                                baseTickets.push({
-                                    ...ticket,
-                                    eventAddress,
-                                    eventName: 'Unknown Event',
-                                    ticketPrice: '',
-                                    eventDescription: '',
-                                    eventDate: '',
-                                    detailsUnavailable: false
-                                });
-                            });
-                    } catch (error) {
-                        // Ignore invalid local ticket data.
-                    }
-                }
-            });
+            const session = getClientSession();
+            const ticketKeys = Object.keys(window.localStorage).filter((key) => key.startsWith('clientTickets:'));
+            const reconciledTickets = await Promise.all(
+                ticketKeys.map((key) => reconcileClientTicketsForEvent(key.split(':')[1], session))
+            );
+            const baseTickets = reconciledTickets
+                .flat()
+                .filter((ticket) => isTicketOwnedByClient(ticket, session))
+                .map((ticket) => ({
+                    ...ticket,
+                    eventAddress: ticket.eventAddress,
+                    eventName: 'Unknown Event',
+                    ticketPrice: '',
+                    eventDescription: '',
+                    eventDate: '',
+                    detailsUnavailable: false
+                }));
 
             const enrichedTickets = await Promise.all(baseTickets.map(async (ticket) => {
                 try {
@@ -83,7 +56,12 @@ class ClientTicketsPage extends Component {
                 }
             }));
 
-            this.setState({ clientAccount, clientWallet, tickets: enrichedTickets, loading: false });
+            this.setState({
+                clientAccount: session.clientAccount,
+                clientWallet: session.clientWallet,
+                tickets: enrichedTickets,
+                loading: false
+            });
         } catch (error) {
             this.setState({ errorMessage: 'Unable to load tickets.', loading: false });
         }
@@ -152,6 +130,7 @@ class ClientTicketsPage extends Component {
 
         const ticketKey = `${ticket.eventAddress}-${ticket.ticketId}`;
         const formattedDate = this.formatTicketDate(ticket.eventDate);
+        const isUsed = Boolean(ticket.isUsedOnChain);
         const fieldLabelStyle = {
             display: 'block',
             marginBottom: '6px',
@@ -205,7 +184,9 @@ class ClientTicketsPage extends Component {
                         <p>{formattedDate}</p>
                     </div>
                     <div className="ticket-badge-wrap">
-                        <span className="ticket-status">QR Ready</span>
+                        <span className={`ticket-status ${isUsed ? 'used' : ''}`}>
+                            {isUsed ? 'Used' : 'QR Ready'}
+                        </span>
                         <span className="ticket-number">#{ticket.ticketId}</span>
                     </div>
                 </div>
@@ -230,6 +211,12 @@ class ClientTicketsPage extends Component {
                     >
                         {ticket.detailsUnavailable ? (
                             <Message warning content="Event details unavailable for this ticket on current network deployment." />
+                        ) : null}
+                        {isUsed ? (
+                            <Message
+                                warning
+                                content="This ticket has already been used and is no longer valid for entry."
+                            />
                         ) : null}
 
                         <div
@@ -496,9 +483,6 @@ class ClientTicketsPage extends Component {
                                 <Link route="/client/dashboard" legacyBehavior>
                                     <a><Button className="hero-btn">Back to Events</Button></a>
                                 </Link>
-                                <Button basic inverted className="hero-btn ghost" onClick={this.handleLogout}>
-                                    Logout
-                                </Button>
                             </div>
                         </div>
                     </section>
@@ -750,6 +734,10 @@ class ClientTicketsPage extends Component {
                     .ticket-status {
                         background: #dcfce7;
                         color: #166534;
+                    }
+                    .ticket-status.used {
+                        background: #fee2e2;
+                        color: #b91c1c;
                     }
                     .ticket-number {
                         background: rgba(255, 255, 255, 0.14);

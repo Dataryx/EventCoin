@@ -39,7 +39,7 @@ class EventNew extends Component {
         } catch (err) {
             // Capture the error message
             const errorMessage = err.message.includes("revert")
-                ? "You do not own this ticket"
+                ? "Only the ticket owner or event manager can use this ticket"
                 : err.message;
             this.setState({ errorMessage });
         }

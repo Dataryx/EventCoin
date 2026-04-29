@@ -38,13 +38,13 @@ class TicketValidationPage extends Component {
             <AdminShell
                 activeRoute="/admin/ticket-validation"
                 title="Ticket Validation Center"
-                subtitle="Validation is always event-specific. Choose one event below."
+                subtitle="Validation and ticket usage are both event-specific. Choose one event below."
                 walletAddress={this.state.adminAccount}
-                heroTitle="Validation Queue"
-                heroDescription="Each link opens a dedicated validation page scoped to one event contract."
+                heroTitle="Validation and Entry Queue"
+                heroDescription="Each link opens a dedicated event page where admins can validate tickets or mark them used."
             >
                 <div className="panel">
-                    <h3>Event Validation Links</h3>
+                    <h3>Event Validation and Use Links</h3>
                     <ul className="validation-list">
                         {this.props.events.map((event) => (
                             <li key={event.address}>
@@ -54,7 +54,7 @@ class TicketValidationPage extends Component {
                                     <span className="mono">{event.address}</span>
                                 </div>
                                 <Link route={`/events/${event.address}/validate`} legacyBehavior>
-                                    <a><Button size="tiny" primary>Validate QR</Button></a>
+                                    <a><Button size="tiny" primary>Open Validation</Button></a>
                                 </Link>
                             </li>
                         ))}

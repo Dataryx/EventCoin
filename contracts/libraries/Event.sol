@@ -38,6 +38,14 @@ contract Event {
         _;
     }
 
+    modifier ticketOwnerOrManager(uint ticketId) {
+        require(
+            tickets[ticketId].owner == msg.sender || manager == msg.sender,
+            "Only ticket owner or manager can perform this action"
+        );
+        _;
+    }
+
     constructor(
         string memory eventName,
         string memory eventDescription,
@@ -74,7 +82,7 @@ contract Event {
         emit TicketPurchased(msg.sender, ticketId);
     }
 
-    function useTicket(uint ticketId) public validTicket(ticketId) ticketOwner(ticketId) {
+    function useTicket(uint ticketId) public validTicket(ticketId) ticketOwnerOrManager(ticketId) {
         require(!tickets[ticketId].isUsed, "Ticket already used");
 
         tickets[ticketId].isUsed = true;

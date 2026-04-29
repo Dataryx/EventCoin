@@ -3,6 +3,8 @@ import { Header, Message } from 'semantic-ui-react';
 import { QRCodeSVG } from 'qrcode.react';
 import Layout from '../../components/layout';
 import Event from '../../ethereum/event';
+import { getClientSession, isTicketOwnedByClient } from '../../ethereum/clientSession';
+import { reconcileClientTicketsForEvent } from '../../ethereum/clientTickets';
 
 class ClientTicketPage extends Component {
     static async getInitialProps(props) {
@@ -24,32 +26,17 @@ class ClientTicketPage extends Component {
         errorMessage: ''
     };
 
-    isTicketOwnedByClient(ticket, clientAccount, clientWallet) {
-        if (clientAccount && ticket.purchaserId) {
-            return ticket.purchaserId === clientAccount;
-        }
-
-        if (clientWallet && ticket.buyerAddress) {
-            return ticket.buyerAddress.toLowerCase() === clientWallet.toLowerCase();
-        }
-
-        return false;
-    }
-
-    componentDidMount() {
+    async componentDidMount() {
         try {
-            const clientAccount = window.localStorage.getItem('clientAccount') || '';
-            const clientWallet = window.localStorage.getItem('clientWallet') || '';
-            const storageKey = `clientTickets:${this.props.eventAddress}`;
-            const stored = window.localStorage.getItem(storageKey);
-            const tickets = stored ? JSON.parse(stored) : [];
+            const session = getClientSession();
+            const tickets = await reconcileClientTicketsForEvent(this.props.eventAddress, session);
             const ticket = tickets.find((item) =>
                 item.ticketId.toString() === this.props.ticketId.toString() &&
-                this.isTicketOwnedByClient(item, clientAccount, clientWallet)
+                isTicketOwnedByClient(item, session)
             );
 
             if (!ticket) {
-                this.setState({ errorMessage: 'Ticket not found in this browser wallet storage.' });
+                this.setState({ errorMessage: 'Ticket not found or it may have been refunded.' });
                 return;
             }
 
@@ -61,6 +48,7 @@ class ClientTicketPage extends Component {
 
     render() {
         const { ticket, errorMessage } = this.state;
+        const isUsed = Boolean(ticket?.isUsedOnChain);
 
         return (
             <Layout>
@@ -69,6 +57,11 @@ class ClientTicketPage extends Component {
                         <span className="kicker">Client Ticket Wallet</span>
                         <h1>My Ticket</h1>
                         <p>{this.props.eventName}</p>
+                        {ticket ? (
+                            <span className={`status-pill ${isUsed ? 'used' : 'active'}`}>
+                                {isUsed ? 'Used' : 'Active'}
+                            </span>
+                        ) : null}
                     </section>
                     <section className="ticket-panel">
                         <div className="details">
@@ -78,6 +71,10 @@ class ClientTicketPage extends Component {
                             <p><strong>Date:</strong> {this.props.eventDate || 'Not set'}</p>
                             <p><strong>Contract:</strong> <span className="mono">{this.props.eventAddress}</span></p>
                             <p><strong>Ticket ID:</strong> {this.props.ticketId}</p>
+                            {ticket ? <p><strong>Status:</strong> {isUsed ? 'Used' : 'Active'}</p> : null}
+                            {isUsed ? (
+                                <Message warning content="This ticket has already been used and can no longer be used for entry." />
+                            ) : null}
                             {errorMessage ? <Message error content={errorMessage} /> : null}
                         </div>
                         {ticket ? (
@@ -99,6 +96,26 @@ class ClientTicketPage extends Component {
                     .kicker { display: inline-block; margin-bottom: 6px; color: #7dd3fc; font-size: 0.72rem; letter-spacing: 0.11em; text-transform: uppercase; font-weight: 800; }
                     .hero-panel h1 { margin: 0 0 6px; font-family: 'Barlow Condensed', sans-serif; font-size: 2.3rem; text-transform: uppercase; }
                     .hero-panel p { margin: 0; color: #dbeafe; }
+                    .status-pill {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin-top: 12px;
+                        border-radius: 999px;
+                        padding: 6px 12px;
+                        font-size: 0.76rem;
+                        font-weight: 800;
+                        letter-spacing: 0.05em;
+                        text-transform: uppercase;
+                    }
+                    .status-pill.active {
+                        background: #dcfce7;
+                        color: #166534;
+                    }
+                    .status-pill.used {
+                        background: #fee2e2;
+                        color: #b91c1c;
+                    }
                     .ticket-panel {
                         border: 1px solid #dbeafe;
                         border-radius: 20px;

@@ -4,6 +4,8 @@ import Layout from '../../../components/layout';
 import Event from '../../../ethereum/event';
 import web3 from '../../../ethereum/web3';
 
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
 class ValidateTicket extends Component {
     static async getInitialProps(props) {
         const eventInstance = Event(props.query.address);
@@ -19,127 +21,312 @@ class ValidateTicket extends Component {
     state = {
         qrPayload: '',
         ticketId: '',
-        loading: false,
+        decodedQrText: '',
+        loadingAction: '',
         errorMessage: '',
-        successMessage: '',
-        decodedQrText: ''
+        successMessage: ''
     };
 
-    assertAdminAccess = async (eventInstance) => {
-        const [activeAccount] = await web3.eth.getAccounts();
-        const eventOwner = await eventInstance.methods.manager().call();
-        if (!activeAccount || activeAccount.toLowerCase() !== eventOwner.toLowerCase()) {
-            throw new Error('Only the event owner can validate tickets from admin dashboard.');
+    getEventInstance() {
+        return Event(this.props.contractAddress);
+    }
+
+    extractRpcErrorMessage = (error) => {
+        const candidates = [
+            error?.cause?.message,
+            error?.data?.message,
+            error?.data?.originalError?.message,
+            error?.innerError?.message,
+            error?.error?.message,
+            error?.message
+        ].filter(Boolean);
+
+        const detailedMessage = candidates.find((message) =>
+            message && !message.includes('Internal JSON-RPC error')
+        );
+
+        return detailedMessage || candidates[0] || 'Unknown blockchain error.';
+    };
+
+    formatUseTicketError = (error, managerAddress) => {
+        const rpcMessage = this.extractRpcErrorMessage(error);
+
+        if (rpcMessage.includes('You do not own this ticket')) {
+            return (
+                `This event contract is still using the legacy owner-only ticket rule. ` +
+                `Manager wallet ${managerAddress} cannot mark tickets used on this deployment. ` +
+                `Recreate the event after redeploying the updated contracts to allow admin/event-manager use.`
+            );
+        }
+
+        if (rpcMessage.includes('Ticket already used')) {
+            return 'This ticket is already marked as used.';
+        }
+
+        if (rpcMessage.includes('Invalid ticket ID')) {
+            return 'This ticket ID does not exist for the selected event.';
+        }
+
+        if (rpcMessage.includes('User denied')) {
+            return 'The wallet transaction was cancelled.';
+        }
+
+        if (rpcMessage.includes('Internal JSON-RPC error')) {
+            return 'Wallet or Ganache returned a generic RPC error. Check that MetaMask is connected to the event manager wallet on the same local network.';
+        }
+
+        return rpcMessage;
+    };
+
+    assertAdminAccess = async () => {
+        if (typeof window === 'undefined') {
+            throw new Error('Admin session unavailable.');
+        }
+
+        const isAdminAuthenticated = window.localStorage.getItem('adminAuthenticated') === 'true';
+        const adminAccount = window.localStorage.getItem('adminAccount') || '';
+
+        if (!isAdminAuthenticated || !adminAccount) {
+            throw new Error('Please log in to the admin dashboard before validating or using tickets.');
         }
     };
 
+    parsePayload = (rawValue) => {
+        let payload;
+
+        try {
+            payload = JSON.parse(rawValue);
+        } catch (error) {
+            throw new Error('QR payload must be valid JSON.');
+        }
+
+        if (!payload.ticketId && payload.ticketId !== 0) {
+            throw new Error('QR payload is missing ticketId.');
+        }
+
+        if (!payload.buyerAddress) {
+            throw new Error('QR payload is missing buyerAddress.');
+        }
+
+        if (!payload.eventAddress) {
+            throw new Error('QR payload is missing eventAddress.');
+        }
+
+        return payload;
+    };
+
+    getTicketSnapshot = async (ticketId) => {
+        const eventInstance = this.getEventInstance();
+        const ticketDetails = await eventInstance.methods.tickets(ticketId).call();
+        const owner = ticketDetails.owner || ticketDetails[0] || '';
+        const isUsed = Boolean(ticketDetails.isUsed || ticketDetails[1]);
+
+        return {
+            eventInstance,
+            ticketId,
+            owner,
+            isUsed
+        };
+    };
+
+    assertTicketIsSoldAndUnused = async (ticketId) => {
+        await this.assertAdminAccess();
+
+        if (ticketId === '' || ticketId === null || ticketId === undefined) {
+            throw new Error('Ticket ID is required.');
+        }
+
+        const snapshot = await this.getTicketSnapshot(ticketId);
+
+        if (!snapshot.owner || snapshot.owner.toLowerCase() === ZERO_ADDRESS) {
+            throw new Error('Ticket not found or never sold.');
+        }
+
+        if (snapshot.isUsed) {
+            throw new Error(`Ticket #${ticketId} is already used.`);
+        }
+
+        return snapshot;
+    };
+
     validateWithContract = async (payload) => {
-        const eventInstance = Event(this.props.contractAddress);
-        await this.assertAdminAccess(eventInstance);
+        await this.assertAdminAccess();
 
         if (payload.eventAddress.toLowerCase() !== this.props.contractAddress.toLowerCase()) {
             throw new Error('This QR belongs to another event contract.');
         }
 
-        const ticketDetails = await eventInstance.methods.tickets(payload.ticketId).call();
-        const onChainOwner = ticketDetails.owner || ticketDetails[0];
-        const isUsed = ticketDetails.isUsed || ticketDetails[1];
+        const snapshot = await this.assertTicketIsSoldAndUnused(payload.ticketId);
 
-        if (onChainOwner.toLowerCase() !== payload.buyerAddress.toLowerCase()) {
+        if (snapshot.owner.toLowerCase() !== payload.buyerAddress.toLowerCase()) {
             throw new Error('Ticket owner does not match QR owner data.');
-        }
-
-        if (isUsed) {
-            throw new Error('Ticket is already used.');
         }
 
         return `Ticket #${payload.ticketId} is valid and unused.`;
     };
 
     validateByTicketId = async () => {
-        const eventInstance = Event(this.props.contractAddress);
-        await this.assertAdminAccess(eventInstance);
-        if (!this.state.ticketId.trim()) {
-            throw new Error('Ticket ID is required.');
+        const snapshot = await this.assertTicketIsSoldAndUnused(this.state.ticketId.trim());
+        return `Ticket #${snapshot.ticketId} is valid and unused. Owner: ${snapshot.owner}`;
+    };
+
+    assertManagerWallet = async () => {
+        if (typeof window === 'undefined' || typeof window.ethereum === 'undefined') {
+            throw new Error('Install MetaMask to mark tickets as used.');
         }
 
-        const ticketDetails = await eventInstance.methods.tickets(this.state.ticketId).call();
-        const owner = ticketDetails.owner || ticketDetails[0];
-        const isUsed = ticketDetails.isUsed || ticketDetails[1];
+        const eventInstance = this.getEventInstance();
+        const managerAddress = await eventInstance.methods.manager().call();
 
-        if (!owner || owner === '0x0000000000000000000000000000000000000000') {
-            throw new Error('Ticket not found or never sold.');
-        }
-        if (isUsed) {
-            throw new Error(`Ticket #${this.state.ticketId} is already used.`);
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const accounts = await web3.eth.getAccounts();
+        const activeAccount = accounts[0];
+
+        if (!activeAccount) {
+            throw new Error('No wallet account found. Connect the event manager wallet first.');
         }
 
-        return `Ticket #${this.state.ticketId} is valid and unused. Owner: ${owner}`;
+        if (activeAccount.toLowerCase() !== managerAddress.toLowerCase()) {
+            throw new Error(`Connect the event manager wallet in MetaMask before using tickets. Required manager: ${managerAddress}`);
+        }
+
+        return {
+            eventInstance,
+            activeAccount,
+            managerAddress
+        };
+    };
+
+    markTicketAsUsed = async (ticketId) => {
+        await this.assertTicketIsSoldAndUnused(ticketId);
+        const { eventInstance, activeAccount, managerAddress } = await this.assertManagerWallet();
+
+        try {
+            await web3.eth.call({
+                to: this.props.contractAddress,
+                from: activeAccount,
+                data: eventInstance.methods.useTicket(ticketId).encodeABI()
+            });
+
+            await eventInstance.methods.useTicket(ticketId).estimateGas({
+                from: activeAccount
+            });
+
+            const result = await eventInstance.methods.useTicket(ticketId).send({
+                from: activeAccount,
+                gas: 300000
+            });
+            const usedTicketId = result.events?.TicketUsed?.returnValues?.ticketId ?? ticketId;
+            return `Ticket #${usedTicketId} was marked as used successfully.`;
+        } catch (error) {
+            throw new Error(this.formatUseTicketError(error, managerAddress));
+        }
+    };
+
+    useByTicketId = async () => {
+        const ticketId = this.state.ticketId.trim();
+        return this.markTicketAsUsed(ticketId);
+    };
+
+    useByPayload = async (payload) => {
+        await this.validateWithContract(payload);
+        return this.markTicketAsUsed(payload.ticketId);
     };
 
     decodeQrFromImage = async (file) => {
         if (typeof window === 'undefined' || !window.BarcodeDetector) {
-            throw new Error('QR image decoding is not supported in this browser. Use Ticket ID validation.');
+            throw new Error('QR image decoding is not supported in this browser. Use Ticket ID or paste the QR payload.');
         }
 
         const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
         const bitmap = await createImageBitmap(file);
         const results = await detector.detect(bitmap);
+
         if (!results.length || !results[0].rawValue) {
             throw new Error('No QR code found in the uploaded image.');
         }
+
         return results[0].rawValue;
+    };
+
+    runAction = async (loadingAction, callback) => {
+        this.setState({ loadingAction, errorMessage: '', successMessage: '' });
+
+        try {
+            const successMessage = await callback();
+            this.setState({ successMessage });
+        } catch (error) {
+            this.setState({ errorMessage: this.extractRpcErrorMessage(error) });
+        }
+
+        this.setState({ loadingAction: '' });
     };
 
     onValidateByQrPayload = async (event) => {
         event.preventDefault();
-        this.setState({ loading: true, errorMessage: '', successMessage: '' });
+        await this.runAction('validate-payload', async () => {
+            const payload = this.parsePayload(this.state.qrPayload);
+            return this.validateWithContract(payload);
+        });
+    };
 
-        try {
-            const payload = JSON.parse(this.state.qrPayload);
-            if (!payload.ticketId || !payload.buyerAddress || !payload.eventAddress) {
-                throw new Error('QR payload is incomplete.');
-            }
-
-            const successMessage = await this.validateWithContract(payload);
-            this.setState({ successMessage });
-        } catch (err) {
-            this.setState({ errorMessage: err.message });
-        }
-
-        this.setState({ loading: false });
+    onUseByQrPayload = async () => {
+        await this.runAction('use-payload', async () => {
+            const payload = this.parsePayload(this.state.qrPayload);
+            return this.useByPayload(payload);
+        });
     };
 
     onValidateByTicketId = async (event) => {
         event.preventDefault();
-        this.setState({ loading: true, errorMessage: '', successMessage: '' });
-        try {
-            const successMessage = await this.validateByTicketId();
-            this.setState({ successMessage });
-        } catch (err) {
-            this.setState({ errorMessage: err.message });
-        }
-        this.setState({ loading: false });
+        await this.runAction('validate-ticket-id', this.validateByTicketId);
+    };
+
+    onUseByTicketId = async () => {
+        await this.runAction('use-ticket-id', this.useByTicketId);
     };
 
     onUploadQrImage = async (event) => {
         const file = event.target.files && event.target.files[0];
-        if (!file) return;
+        if (!file) {
+            return;
+        }
 
-        this.setState({ loading: true, errorMessage: '', successMessage: '' });
+        this.setState({ loadingAction: 'decode-qr', errorMessage: '', successMessage: '' });
+
         try {
             const decodedQrText = await this.decodeQrFromImage(file);
-            this.setState({ decodedQrText, qrPayload: decodedQrText });
-            const payload = JSON.parse(decodedQrText);
-            if (!payload.ticketId || !payload.buyerAddress || !payload.eventAddress) {
-                throw new Error('Decoded QR payload is incomplete.');
-            }
-            const successMessage = await this.validateWithContract(payload);
-            this.setState({ successMessage });
-        } catch (err) {
-            this.setState({ errorMessage: err.message });
+            this.setState({
+                decodedQrText,
+                qrPayload: decodedQrText
+            });
+        } catch (error) {
+            this.setState({ errorMessage: error.message });
         }
-        this.setState({ loading: false });
+
+        this.setState({ loadingAction: '' });
+    };
+
+    onValidateUploadedQr = async () => {
+        await this.runAction('validate-uploaded-qr', async () => {
+            if (!this.state.decodedQrText) {
+                throw new Error('Upload a QR image first.');
+            }
+
+            const payload = this.parsePayload(this.state.decodedQrText);
+            return this.validateWithContract(payload);
+        });
+    };
+
+    onUseUploadedQr = async () => {
+        await this.runAction('use-uploaded-qr', async () => {
+            if (!this.state.decodedQrText) {
+                throw new Error('Upload a QR image first.');
+            }
+
+            const payload = this.parsePayload(this.state.decodedQrText);
+            return this.useByPayload(payload);
+        });
     };
 
     render() {
@@ -149,8 +336,8 @@ class ValidateTicket extends Component {
                     <section className="hero-panel">
                         <div className="hero-copy">
                             <span className="hero-kicker">Ticketmaster-style Admin</span>
-                            <h1>Admin Ticket QR Validation</h1>
-                            <p className="hero-subtitle">Validate tickets for one event contract using ID lookup, QR image scan, or QR payload text.</p>
+                            <h1>Admin Ticket Validation and Use</h1>
+                            <p className="hero-subtitle">Validate tickets or mark them used from the same event-specific screen using ticket ID, QR image scan, or QR payload text.</p>
                             <div className="hero-meta">
                                 <span className="meta-pill">{this.props.eventName || 'Unnamed Event'}</span>
                                 <span className="meta-pill">{this.props.eventDate || 'Date TBD'}</span>
@@ -158,23 +345,24 @@ class ValidateTicket extends Component {
                             </div>
                         </div>
                         <div className="hero-side">
-                            <p className="side-label">Validation Scope</p>
-                            <h2>Event-Specific</h2>
-                            <p className="side-copy">{this.props.eventDescription || 'This event is ready for ticket gate validation.'}</p>
+                            <p className="side-label">Gate Workflow</p>
+                            <h2>Validate Then Use</h2>
+                            <p className="side-copy">{this.props.eventDescription || 'This event is ready for ticket validation and entry check-in.'}</p>
+                            <p className="side-note">Using a ticket sends an on-chain transaction and requires the event manager wallet in MetaMask.</p>
                         </div>
                     </section>
 
                     {this.state.errorMessage ? (
-                        <Message error header="Validation failed" content={this.state.errorMessage} />
+                        <Message error header="Action failed" content={this.state.errorMessage} />
                     ) : null}
                     {this.state.successMessage ? (
-                        <Message success header="Validation passed" content={this.state.successMessage} />
+                        <Message success header="Action complete" content={this.state.successMessage} />
                     ) : null}
 
                     <section className="workflow-grid">
                         <article className="workflow-card">
                             <span className="section-kicker">Method 1</span>
-                            <h3>Validate by Ticket ID</h3>
+                            <h3>Ticket ID</h3>
                             <Form onSubmit={this.onValidateByTicketId}>
                                 <Form.Input
                                     label="Ticket ID"
@@ -182,15 +370,33 @@ class ValidateTicket extends Component {
                                     onChange={(event) => this.setState({ ticketId: event.target.value })}
                                     placeholder="Enter ticket id"
                                 />
-                                <Button primary loading={this.state.loading} className="tm-btn">
-                                    Validate Ticket ID
-                                </Button>
+                                <div className="action-row">
+                                    <Button
+                                        primary
+                                        loading={this.state.loadingAction === 'validate-ticket-id'}
+                                        disabled={Boolean(this.state.loadingAction && this.state.loadingAction !== 'validate-ticket-id')}
+                                        className="tm-btn"
+                                        type="submit"
+                                    >
+                                        Validate Ticket ID
+                                    </Button>
+                                    <Button
+                                        secondary
+                                        loading={this.state.loadingAction === 'use-ticket-id'}
+                                        disabled={Boolean(this.state.loadingAction && this.state.loadingAction !== 'use-ticket-id')}
+                                        className="tm-btn tm-btn-secondary"
+                                        type="button"
+                                        onClick={this.onUseByTicketId}
+                                    >
+                                        Use Ticket ID
+                                    </Button>
+                                </div>
                             </Form>
                         </article>
 
                         <article className="workflow-card">
                             <span className="section-kicker">Method 2</span>
-                            <h3>Validate by QR Image Upload</h3>
+                            <h3>QR Image Upload</h3>
                             <Form>
                                 <Form.Input
                                     type="file"
@@ -201,12 +407,36 @@ class ValidateTicket extends Component {
                             </Form>
                             {this.state.decodedQrText ? (
                                 <p className="decoded-copy">Decoded QR payload: {this.state.decodedQrText}</p>
-                            ) : null}
+                            ) : (
+                                <p className="decoded-copy muted">Upload a QR image to decode it, then validate it or mark it used.</p>
+                            )}
+                            <div className="action-row">
+                                <Button
+                                    primary
+                                    loading={this.state.loadingAction === 'validate-uploaded-qr'}
+                                    disabled={Boolean(this.state.loadingAction && this.state.loadingAction !== 'validate-uploaded-qr')}
+                                    className="tm-btn"
+                                    type="button"
+                                    onClick={this.onValidateUploadedQr}
+                                >
+                                    Validate Uploaded QR
+                                </Button>
+                                <Button
+                                    secondary
+                                    loading={this.state.loadingAction === 'use-uploaded-qr'}
+                                    disabled={Boolean(this.state.loadingAction && this.state.loadingAction !== 'use-uploaded-qr')}
+                                    className="tm-btn tm-btn-secondary"
+                                    type="button"
+                                    onClick={this.onUseUploadedQr}
+                                >
+                                    Use Uploaded QR
+                                </Button>
+                            </div>
                         </article>
 
                         <article className="workflow-card workflow-card-wide">
                             <span className="section-kicker">Method 3</span>
-                            <h3>Validate by QR Payload Text</h3>
+                            <h3>QR Payload Text</h3>
                             <Form onSubmit={this.onValidateByQrPayload}>
                                 <Form.TextArea
                                     rows={8}
@@ -214,9 +444,27 @@ class ValidateTicket extends Component {
                                     onChange={(event) => this.setState({ qrPayload: event.target.value })}
                                     placeholder="Paste QR JSON payload here"
                                 />
-                                <Button primary loading={this.state.loading} className="tm-btn">
-                                    Validate QR Payload
-                                </Button>
+                                <div className="action-row">
+                                    <Button
+                                        primary
+                                        loading={this.state.loadingAction === 'validate-payload'}
+                                        disabled={Boolean(this.state.loadingAction && this.state.loadingAction !== 'validate-payload')}
+                                        className="tm-btn"
+                                        type="submit"
+                                    >
+                                        Validate QR Payload
+                                    </Button>
+                                    <Button
+                                        secondary
+                                        loading={this.state.loadingAction === 'use-payload'}
+                                        disabled={Boolean(this.state.loadingAction && this.state.loadingAction !== 'use-payload')}
+                                        className="tm-btn tm-btn-secondary"
+                                        type="button"
+                                        onClick={this.onUseByQrPayload}
+                                    >
+                                        Use QR Payload
+                                    </Button>
+                                </div>
                             </Form>
                         </article>
                     </section>
@@ -294,11 +542,17 @@ class ValidateTicket extends Component {
                         font-family: 'Barlow Condensed', sans-serif;
                         font-size: 2rem;
                     }
-                    .side-copy {
+                    .side-copy,
+                    .side-note {
                         margin: 0;
                         color: #dbeafe;
                         line-height: 1.5;
                         font-size: 0.9rem;
+                    }
+                    .side-note {
+                        margin-top: 10px;
+                        color: #bfdbfe;
+                        font-size: 0.8rem;
                     }
                     .workflow-grid {
                         display: grid;
@@ -331,6 +585,12 @@ class ValidateTicket extends Component {
                         font-size: 1.5rem;
                         letter-spacing: 0.03em;
                     }
+                    .action-row {
+                        display: flex;
+                        gap: 10px;
+                        flex-wrap: wrap;
+                        margin-top: 8px;
+                    }
                     :global(.workflow-card .ui.form .field > label) {
                         color: #334155;
                         font-weight: 700;
@@ -348,12 +608,18 @@ class ValidateTicket extends Component {
                         letter-spacing: 0.04em;
                         margin-top: 6px;
                     }
+                    :global(.tm-btn-secondary.ui.button) {
+                        background: #0f172a !important;
+                    }
                     .decoded-copy {
                         margin: 10px 0 0;
                         color: #334155;
                         font-size: 0.82rem;
                         line-height: 1.45;
                         word-break: break-word;
+                    }
+                    .decoded-copy.muted {
+                        color: #64748b;
                     }
                     .mono {
                         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;

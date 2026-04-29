@@ -1,9 +1,0 @@
-{
-  "/_app": "pages/_app.js",
-  "/_error": "pages/_error.js",
-  "/_document": "pages/_document.js",
-  "/events/show": "pages/events/show.js",
-  "/client/tickets": "pages/client/tickets.js",
-  "/client/ticket": "pages/client/ticket.js",
-  "/client/dashboard": "pages/client/dashboard.js"
-}

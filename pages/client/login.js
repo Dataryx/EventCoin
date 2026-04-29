@@ -65,8 +65,11 @@ class ClientLogin extends Component {
             const currentClient = updatedClients.find((client) => client.id === matchedClient.id) || matchedClient;
 
             const displayIdentity = currentClient.username || currentClient.email;
+            window.localStorage.removeItem('clientWallet');
+            window.localStorage.setItem('clientId', currentClient.id);
             window.localStorage.setItem('clientAccount', displayIdentity);
             window.localStorage.setItem('clientProfile', JSON.stringify({
+                id: currentClient.id,
                 name: currentClient.name,
                 username: currentClient.username,
                 email: currentClient.email

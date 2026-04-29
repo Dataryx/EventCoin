@@ -105,3 +105,5 @@ npm run dev
   - Ticket supply too high for constructor loop.
   - Try lower `ticketSupply` (for example 50-200).
 
+
+Alerts and status messages for payment, purchase success/failure in client side and Alerts and status messages  for event creation, ticket used, validation

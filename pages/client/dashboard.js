@@ -2,8 +2,12 @@ import React, { Component } from 'react';
 import { Button, Message, Input } from 'semantic-ui-react';
 import { contractAddress, getDeployedEventsInstance } from '../../ethereum/factory';
 import Layout from '../../components/layout';
-import { Link, Router } from '../../routes';
+import { Link } from '../../routes';
 import Event from '../../ethereum/event';
+import { getClientSession, isTicketOwnedByClient } from '../../ethereum/clientSession';
+import { reconcileClientTicketsForEvent } from '../../ethereum/clientTickets';
+import ClientAccountDropdown from '../../components/clientAccountDropdown';
+import ClientWalletBalance from '../../components/clientWalletBalance';
 
 class ClientDashboard extends Component {
     static async getInitialProps() {
@@ -41,44 +45,23 @@ class ClientDashboard extends Component {
     };
 
     componentDidMount() {
-        const clientAccount = window.localStorage.getItem('clientAccount') || '';
-        const clientWallet = window.localStorage.getItem('clientWallet') || '';
-        const myTickets = [];
+        this.loadClientTickets();
+    }
 
-        Object.keys(window.localStorage).forEach((key) => {
-            if (key.startsWith('clientTickets:')) {
-                try {
-                    const tickets = JSON.parse(window.localStorage.getItem(key) || '[]');
-                    tickets
-                        .filter((ticket) => this.isTicketOwnedByClient(ticket, clientAccount, clientWallet))
-                        .forEach((ticket) => myTickets.push(ticket));
-                } catch (err) {
-                    // Ignore malformed local entries.
-                }
-            }
+    loadClientTickets = async () => {
+        const session = getClientSession();
+        const ticketKeys = Object.keys(window.localStorage).filter((key) => key.startsWith('clientTickets:'));
+        const ticketGroups = await Promise.all(
+            ticketKeys.map((key) => reconcileClientTicketsForEvent(key.split(':')[1], session))
+        );
+        const myTickets = ticketGroups.flat().filter((ticket) => isTicketOwnedByClient(ticket, session));
+
+        this.setState({
+            clientAccount: session.clientAccount,
+            clientWallet: session.clientWallet,
+            myTickets
         });
-
-        this.setState({ clientAccount, clientWallet, myTickets });
     }
-
-    isTicketOwnedByClient(ticket, clientAccount, clientWallet) {
-        if (clientAccount && ticket.purchaserId) {
-            return ticket.purchaserId === clientAccount;
-        }
-
-        if (clientWallet && ticket.buyerAddress) {
-            return ticket.buyerAddress.toLowerCase() === clientWallet.toLowerCase();
-        }
-
-        return false;
-    }
-
-    handleLogout = () => {
-        window.localStorage.removeItem('clientAccount');
-        window.localStorage.removeItem('clientProfile');
-        window.localStorage.removeItem('clientWallet');
-        Router.pushRoute('/client/login');
-    };
 
     deriveCategory(eventName) {
         const normalized = (eventName || '').toLowerCase();
@@ -490,10 +473,19 @@ class ClientDashboard extends Component {
                         <div>
                             <h1>FIND YOUR NEXT EVENT</h1>
                             <p>Signed in as: {this.state.clientAccount || 'Not connected'}</p>
+                            <div className="header-balance">
+                                <ClientWalletBalance
+                                    walletAddress={this.state.clientWallet}
+                                    label="Live ETH Balance"
+                                    inverted
+                                />
+                            </div>
                         </div>
-                        <Button basic inverted className="client-logout-btn" onClick={this.handleLogout}>
-                            Logout
-                        </Button>
+                        <ClientAccountDropdown
+                            clientAccount={this.state.clientAccount}
+                            clientWallet={this.state.clientWallet}
+                            inverted
+                        />
                     </div>
                     <div className="summary-row">
                         <div className="summary-card">
@@ -560,11 +552,8 @@ class ClientDashboard extends Component {
                         color: #cbd5e1;
                         font-size: 0.85rem;
                     }
-                    :global(.client-logout-btn.ui.button) {
-                        border-radius: 999px !important;
-                        font-weight: 800 !important;
-                        letter-spacing: 0.04em;
-                        white-space: nowrap;
+                    .header-balance {
+                        margin-top: 8px;
                     }
                     .summary-row {
                         display: grid;

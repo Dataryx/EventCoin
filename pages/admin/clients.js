@@ -126,8 +126,10 @@ class AdminClients extends Component {
 
         const activeIdentity = window.localStorage.getItem('clientAccount');
         if (activeIdentity && targetIdentity && this.normalizeIdentity(activeIdentity) === this.normalizeIdentity(targetIdentity)) {
+            window.localStorage.removeItem('clientId');
             window.localStorage.removeItem('clientAccount');
             window.localStorage.removeItem('clientProfile');
+            window.localStorage.removeItem('clientWallet');
         }
 
         this.setState({

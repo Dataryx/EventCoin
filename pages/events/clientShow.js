@@ -4,7 +4,9 @@ import { QRCodeSVG } from 'qrcode.react';
 import Layout from '../../components/layout';
 import Event from '../../ethereum/event';
 import web3 from '../../ethereum/web3';
-import { Router } from '../../routes';
+import { getClientSession, isTicketOwnedByClient } from '../../ethereum/clientSession';
+import { reconcileClientTicketsForEvent } from '../../ethereum/clientTickets';
+import { persistClientTransaction } from '../../ethereum/clientTransactions';
 
 class ClientEventShow extends Component {
     static async getInitialProps(props) {
@@ -42,45 +44,22 @@ class ClientEventShow extends Component {
         return `clientTickets:${this.props.contractAddress}`;
     }
 
-    isTicketOwnedByClient = (ticket, clientAccount, clientWallet) => {
-        if (clientAccount && ticket.purchaserId) {
-            return ticket.purchaserId === clientAccount;
-        }
-
-        if (clientWallet && ticket.buyerAddress) {
-            return ticket.buyerAddress.toLowerCase() === clientWallet.toLowerCase();
-        }
-
-        return false;
-    };
-
     restoreClientState = async () => {
-        const clientAccount = window.localStorage.getItem('clientAccount') || '';
-        const clientWallet = window.localStorage.getItem('clientWallet') || '';
-        const storedTickets = window.localStorage.getItem(this.storageKey());
-        const allTickets = storedTickets ? JSON.parse(storedTickets) : [];
-        const purchasedTickets = allTickets.filter((ticket) => this.isTicketOwnedByClient(ticket, clientAccount, clientWallet));
+        const session = getClientSession();
+        const purchasedTickets = await reconcileClientTicketsForEvent(this.props.contractAddress, session);
 
-        this.setState({ clientAccount, clientWallet, purchasedTickets });
+        this.setState({ clientAccount: session.clientAccount, clientWallet: session.clientWallet, purchasedTickets });
     };
 
     persistTickets = (tickets) => {
-        const clientAccount = window.localStorage.getItem('clientAccount') || '';
-        const clientWallet = window.localStorage.getItem('clientWallet') || '';
+        const session = getClientSession();
         const storedTickets = window.localStorage.getItem(this.storageKey());
         const allTickets = storedTickets ? JSON.parse(storedTickets) : [];
-        const preservedTickets = allTickets.filter((ticket) => !this.isTicketOwnedByClient(ticket, clientAccount, clientWallet));
+        const preservedTickets = allTickets.filter((ticket) => !isTicketOwnedByClient(ticket, session));
         const nextTickets = [...preservedTickets, ...tickets];
 
         window.localStorage.setItem(this.storageKey(), JSON.stringify(nextTickets));
         this.setState({ purchasedTickets: tickets });
-    };
-
-    handleLogout = () => {
-        window.localStorage.removeItem('clientAccount');
-        window.localStorage.removeItem('clientProfile');
-        window.localStorage.removeItem('clientWallet');
-        Router.pushRoute('/client/login');
     };
 
     createQrPayload = (ticketId, buyerAddress) => {
@@ -102,6 +81,10 @@ class ClientEventShow extends Component {
             if (!window.ethereum) {
                 throw new Error('Install MetaMask to complete checkout.');
             }
+            const session = getClientSession();
+            if (!session.clientIdentity) {
+                throw new Error('Login as a client before purchasing tickets.');
+            }
             await window.ethereum.request({ method: 'eth_requestAccounts' });
             const accounts = await web3.eth.getAccounts();
             if (!accounts.length) {
@@ -109,8 +92,9 @@ class ClientEventShow extends Component {
             }
 
             const buyerAddress = accounts[0];
-            const profile = JSON.parse(window.localStorage.getItem('clientProfile') || '{}');
-            const purchaserId = window.localStorage.getItem('clientAccount') || '';
+            const profile = session.clientProfile || {};
+            const purchaserId = session.clientAccount || '';
+            const purchaserClientId = session.clientIdentity;
             if (!this.state.cartQuantity) {
                 throw new Error('Add at least one ticket to cart before checkout.');
             }
@@ -120,6 +104,7 @@ class ClientEventShow extends Component {
             }
 
             const newTickets = [];
+            const purchaseTimestamp = new Date().toISOString();
             for (let i = 0; i < this.state.cartQuantity; i += 1) {
                 const result = await event.methods.buyTicket().send({
                     from: buyerAddress,
@@ -132,8 +117,19 @@ class ClientEventShow extends Component {
                     qrPayload,
                     buyerAddress,
                     eventAddress: this.props.contractAddress,
+                    purchaserClientId,
                     purchaserId,
                     purchaserName: profile.name || purchaserId
+                });
+                persistClientTransaction({
+                    eventAddress: this.props.contractAddress,
+                    eventName: this.props.name || 'Unnamed Event',
+                    qty: 1,
+                    ethPaidWei: this.props.ticketPrice.toString(),
+                    txHash: result.transactionHash || '',
+                    purchasedAt: purchaseTimestamp,
+                    purchaserClientId,
+                    purchaserId
                 });
             }
 
@@ -235,9 +231,6 @@ class ClientEventShow extends Component {
                             <p className="side-copy">Price per ticket</p>
                             <p className="wallet-copy">{this.state.clientAccount || 'No active client profile'}</p>
                             <p className="wallet-copy">{this.state.clientWallet || 'Wallet not connected yet'}</p>
-                            <Button basic inverted size="small" className="client-logout-btn" onClick={this.handleLogout}>
-                                Logout
-                            </Button>
                         </div>
                     </section>
 
@@ -314,7 +307,6 @@ class ClientEventShow extends Component {
                     .hero-side h2 { margin: 8px 0 4px; font-family: 'Barlow Condensed', sans-serif; font-size: 2.6rem; }
                     .side-copy { margin: 0 0 10px; color: #dbeafe; }
                     .wallet-copy { margin: 0; color: #e2e8f0; font-size: 0.8rem; word-break: break-word; }
-                    :global(.client-logout-btn.ui.button) { margin-top: 10px; border-radius: 999px !important; font-weight: 800 !important; letter-spacing: 0.04em; }
                     .checkout-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 12px; }
                     .info-card, .checkout-card, .tickets-rail {
                         background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
