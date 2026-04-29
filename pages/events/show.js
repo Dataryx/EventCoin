@@ -9,6 +9,27 @@ class EventShow extends Component {
         const event = Event(props.query.address);
         const summary = await event.methods.getEventDetails().call();
         const owner = await event.methods.manager().call();
+        const ticketSupply = parseInt(summary[2], 10) || 0;
+        const zeroAddress = '0x0000000000000000000000000000000000000000';
+        const soldTicketsRaw = await Promise.all(
+            Array.from({ length: ticketSupply }, (_, ticketId) => (
+                event.methods.tickets(ticketId).call()
+                    .then((ticket) => {
+                        const ticketOwner = ticket.owner || ticket[0] || '';
+                        const isUsed = Boolean(ticket.isUsed || ticket[1]);
+                        if (!ticketOwner || ticketOwner.toLowerCase() === zeroAddress) {
+                            return null;
+                        }
+                        return {
+                            ticketId,
+                            owner: ticketOwner,
+                            isUsed
+                        };
+                    })
+                    .catch(() => null)
+            ))
+        );
+        const soldTickets = soldTicketsRaw.filter(Boolean);
 
         return {
             name: summary[0],
@@ -19,6 +40,7 @@ class EventShow extends Component {
             eventDate: summary[5] || '',
             owner,
             contractAddress: props.query.address,
+            soldTickets,
             successMessage: props.query.successMessage || ''
         };
     }
@@ -35,6 +57,23 @@ class EventShow extends Component {
         if (prevProps.successMessage !== this.props.successMessage) {
             this.setState({ successMessage: this.props.successMessage });
         }
+    }
+
+    renderTicketList(tickets, emptyCopy) {
+        if (!tickets.length) {
+            return <p className="empty-ticket-copy">{emptyCopy}</p>;
+        }
+
+        return (
+            <ul className="ticket-list">
+                {tickets.map((ticket) => (
+                    <li key={ticket.ticketId} className="ticket-row">
+                        <span className="ticket-id">#{ticket.ticketId}</span>
+                        <span className="ticket-owner mono">{ticket.owner}</span>
+                    </li>
+                ))}
+            </ul>
+        );
     }
 
     renderActionDeck() {
@@ -104,13 +143,16 @@ class EventShow extends Component {
             description,
             eventDate,
             owner,
-            contractAddress
+            contractAddress,
+            soldTickets
         } = this.props;
 
         const availableTickets = Math.max(parseInt(ticketSupply, 10) - parseInt(ticketsSold, 10), 0);
         const sellThrough = parseInt(ticketSupply, 10)
             ? Math.min(Math.round((parseInt(ticketsSold, 10) / parseInt(ticketSupply, 10)) * 100), 100)
             : 0;
+        const usedTickets = soldTickets.filter((ticket) => ticket.isUsed);
+        const unusedTickets = soldTickets.filter((ticket) => !ticket.isUsed);
 
         return (
             <Layout>
@@ -168,6 +210,30 @@ class EventShow extends Component {
                             <h3 style={{ marginTop: '18px' }}>Event Contract</h3>
                             <p className="mono">{contractAddress}</p>
                         </article>
+                    </section>
+
+                    <section className="ticket-ledger">
+                        <div className="ticket-ledger-head">
+                            <span className="section-kicker">Ticket Story</span>
+                            <h3>Sold Ticket Ledger</h3>
+                            <p>Review sold tickets and split gate status between unused and used entries.</p>
+                        </div>
+                        <div className="ticket-ledger-grid">
+                            <article className="ticket-ledger-panel">
+                                <div className="ticket-ledger-panel-head">
+                                    <h4>Unused Tickets</h4>
+                                    <span className="count-pill">{unusedTickets.length}</span>
+                                </div>
+                                {this.renderTicketList(unusedTickets, 'No unused sold tickets right now.')}
+                            </article>
+                            <article className="ticket-ledger-panel used">
+                                <div className="ticket-ledger-panel-head">
+                                    <h4>Used Tickets</h4>
+                                    <span className="count-pill used">{usedTickets.length}</span>
+                                </div>
+                                {this.renderTicketList(usedTickets, 'No tickets have been used yet.')}
+                            </article>
+                        </div>
                     </section>
 
                     <section className="action-rail">
@@ -334,6 +400,100 @@ class EventShow extends Component {
                         border: 1px solid #dbeafe;
                         box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
                     }
+                    .ticket-ledger {
+                        padding: 22px;
+                        border-radius: 24px;
+                        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+                        border: 1px solid #dbeafe;
+                        box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+                    }
+                    .ticket-ledger-head h3 {
+                        margin: 0 0 8px;
+                        color: #0f172a;
+                        font-family: 'Barlow Condensed', sans-serif;
+                        font-size: 2rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.04em;
+                    }
+                    .ticket-ledger-head p {
+                        margin: 0 0 16px;
+                        color: #64748b;
+                        max-width: 660px;
+                        line-height: 1.6;
+                    }
+                    .ticket-ledger-grid {
+                        display: grid;
+                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                        gap: 12px;
+                    }
+                    .ticket-ledger-panel {
+                        padding: 16px;
+                        border-radius: 16px;
+                        border: 1px solid #dbe4f0;
+                        background: white;
+                    }
+                    .ticket-ledger-panel.used {
+                        border-color: #fecaca;
+                        background: #fff7f7;
+                    }
+                    .ticket-ledger-panel-head {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        margin-bottom: 10px;
+                    }
+                    .ticket-ledger-panel-head h4 {
+                        margin: 0;
+                        color: #0f172a;
+                        font-family: 'Barlow Condensed', sans-serif;
+                        font-size: 1.35rem;
+                        letter-spacing: 0.03em;
+                        text-transform: uppercase;
+                    }
+                    .count-pill {
+                        border-radius: 999px;
+                        padding: 5px 10px;
+                        background: #dcfce7;
+                        color: #166534;
+                        font-size: 0.72rem;
+                        font-weight: 800;
+                        letter-spacing: 0.04em;
+                    }
+                    .count-pill.used {
+                        background: #fee2e2;
+                        color: #b91c1c;
+                    }
+                    .ticket-list {
+                        list-style: none;
+                        margin: 0;
+                        padding: 0;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 8px;
+                    }
+                    .ticket-row {
+                        display: grid;
+                        grid-template-columns: 74px 1fr;
+                        gap: 10px;
+                        padding: 9px 10px;
+                        border-radius: 12px;
+                        border: 1px solid #e2e8f0;
+                        background: #f8fafc;
+                    }
+                    .ticket-id {
+                        color: #026cdf;
+                        font-weight: 800;
+                        font-size: 0.88rem;
+                    }
+                    .ticket-owner {
+                        font-size: 0.8rem;
+                        color: #334155;
+                    }
+                    .empty-ticket-copy {
+                        margin: 0;
+                        color: #64748b;
+                        font-size: 0.9rem;
+                    }
                     .action-rail-head h3 {
                         margin: 0 0 8px;
                         color: #0f172a;
@@ -405,6 +565,9 @@ class EventShow extends Component {
                     @media (max-width: 980px) {
                         .hero-panel,
                         .detail-grid {
+                            grid-template-columns: 1fr;
+                        }
+                        .ticket-ledger-grid {
                             grid-template-columns: 1fr;
                         }
                         .action-button-grid {

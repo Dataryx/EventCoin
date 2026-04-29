@@ -6,7 +6,7 @@
  * or disable the default devtool with "devtool: false".
  * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
  */
-(self["webpackChunk_N_E"] = self["webpackChunk_N_E"] || []).push([["pages/events/show"],{
+self["webpackHotUpdate_N_E"]("pages/events/show",{
 
 /***/ "./node_modules/@ethereumjs/rlp/dist/index.js":
 /*!****************************************************!*\
@@ -1428,16 +1428,6 @@ eval(__webpack_require__.ts("/**\n * Expose `pathToRegexp`.\n */\nmodule.exports
 
 "use strict";
 eval(__webpack_require__.ts("\nvar assign = Object.assign.bind(Object);\nmodule.exports = assign;\nmodule.exports[\"default\"] = module.exports;\n\n//# sourceMappingURL=object-assign.js.map//# sourceURL=[module]\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiLi9ub2RlX21vZHVsZXMvbmV4dC9kaXN0L2J1aWxkL3BvbHlmaWxscy9vYmplY3QtYXNzaWduLmpzIiwibWFwcGluZ3MiOiJBQUFhO0FBQ2I7QUFDQTtBQUNBLHlCQUFzQjs7QUFFdEIiLCJzb3VyY2VzIjpbIndlYnBhY2s6Ly9fTl9FLy4vbm9kZV9tb2R1bGVzL25leHQvZGlzdC9idWlsZC9wb2x5ZmlsbHMvb2JqZWN0LWFzc2lnbi5qcz9lN2QxIl0sInNvdXJjZXNDb250ZW50IjpbIlwidXNlIHN0cmljdFwiO1xudmFyIGFzc2lnbiA9IE9iamVjdC5hc3NpZ24uYmluZChPYmplY3QpO1xubW9kdWxlLmV4cG9ydHMgPSBhc3NpZ247XG5tb2R1bGUuZXhwb3J0cy5kZWZhdWx0ID0gbW9kdWxlLmV4cG9ydHM7XG5cbi8vIyBzb3VyY2VNYXBwaW5nVVJMPW9iamVjdC1hc3NpZ24uanMubWFwIl0sIm5hbWVzIjpbXSwic291cmNlUm9vdCI6IiJ9\n//# sourceURL=webpack-internal:///./node_modules/next/dist/build/polyfills/object-assign.js\n"));
-
-/***/ }),
-
-/***/ "./node_modules/next/dist/build/webpack/loaders/next-client-pages-loader.js?absolutePagePath=C%3A%5CSum%5CCPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)%5CFinal%20Project%5CEventCoin%20DApp%5Cpages%5Cevents%5Cshow.js&page=%2Fevents%2Fshow!":
-/*!*****************************************************************************************************************************************************************************************************************************************************************************************************!*\
-  !*** ./node_modules/next/dist/build/webpack/loaders/next-client-pages-loader.js?absolutePagePath=C%3A%5CSum%5CCPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)%5CFinal%20Project%5CEventCoin%20DApp%5Cpages%5Cevents%5Cshow.js&page=%2Fevents%2Fshow! ***!
-  \*****************************************************************************************************************************************************************************************************************************************************************************************************/
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
-
-eval(__webpack_require__.ts("\n    (window.__NEXT_P = window.__NEXT_P || []).push([\n      \"/events/show\",\n      function () {\n        return __webpack_require__(/*! ./pages/events/show.js */ \"./pages/events/show.js\");\n      }\n    ]);\n    if(true) {\n      module.hot.dispose(function () {\n        window.__NEXT_P.push([\"/events/show\"])\n      });\n    }\n  //# sourceURL=[module]\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiLi9ub2RlX21vZHVsZXMvbmV4dC9kaXN0L2J1aWxkL3dlYnBhY2svbG9hZGVycy9uZXh0LWNsaWVudC1wYWdlcy1sb2FkZXIuanM/YWJzb2x1dGVQYWdlUGF0aD1DJTNBJTVDU3VtJTVDQ1BTQyUyMDU1OSUyMC0lMjBBZHZhbmNlJTIwQmxvY2tjaGFpbiUyMFRlY2hub2xvZ2llcyUyME1pZCUyMFRlcm0lMjBQcm9qZWN0JTIwKFN1bWl0JTIwU2luZ2gpJTVDRmluYWwlMjBQcm9qZWN0JTVDRXZlbnRDb2luJTIwREFwcCU1Q3BhZ2VzJTVDZXZlbnRzJTVDc2hvdy5qcyZwYWdlPSUyRmV2ZW50cyUyRnNob3chIiwibWFwcGluZ3MiOiI7QUFDQTtBQUNBO0FBQ0E7QUFDQSxlQUFlLG1CQUFPLENBQUMsc0RBQXdCO0FBQy9DO0FBQ0E7QUFDQSxPQUFPLElBQVU7QUFDakIsTUFBTSxVQUFVO0FBQ2hCO0FBQ0EsT0FBTztBQUNQO0FBQ0EiLCJzb3VyY2VzIjpbIndlYnBhY2s6Ly9fTl9FLz84NWVkIl0sInNvdXJjZXNDb250ZW50IjpbIlxuICAgICh3aW5kb3cuX19ORVhUX1AgPSB3aW5kb3cuX19ORVhUX1AgfHwgW10pLnB1c2goW1xuICAgICAgXCIvZXZlbnRzL3Nob3dcIixcbiAgICAgIGZ1bmN0aW9uICgpIHtcbiAgICAgICAgcmV0dXJuIHJlcXVpcmUoXCIuL3BhZ2VzL2V2ZW50cy9zaG93LmpzXCIpO1xuICAgICAgfVxuICAgIF0pO1xuICAgIGlmKG1vZHVsZS5ob3QpIHtcbiAgICAgIG1vZHVsZS5ob3QuZGlzcG9zZShmdW5jdGlvbiAoKSB7XG4gICAgICAgIHdpbmRvdy5fX05FWFRfUC5wdXNoKFtcIi9ldmVudHMvc2hvd1wiXSlcbiAgICAgIH0pO1xuICAgIH1cbiAgIl0sIm5hbWVzIjpbXSwic291cmNlUm9vdCI6IiJ9\n//# sourceURL=webpack-internal:///./node_modules/next/dist/build/webpack/loaders/next-client-pages-loader.js?absolutePagePath=C%3A%5CSum%5CCPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)%5CFinal%20Project%5CEventCoin%20DApp%5Cpages%5Cevents%5Cshow.js&page=%2Fevents%2Fshow!\n"));
 
 /***/ }),
 
@@ -14311,11 +14301,4 @@ module.exports = /*#__PURE__*/JSON.parse('{"contractName":"Event","abi":[{"input
 
 /***/ })
 
-},
-/******/ function(__webpack_require__) { // webpackRuntimeModules
-/******/ var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId); }
-/******/ __webpack_require__.O(0, ["pages/_app","main"], function() { return __webpack_exec__("./node_modules/next/dist/build/webpack/loaders/next-client-pages-loader.js?absolutePagePath=C%3A%5CSum%5CCPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)%5CFinal%20Project%5CEventCoin%20DApp%5Cpages%5Cevents%5Cshow.js&page=%2Fevents%2Fshow!"); });
-/******/ var __webpack_exports__ = __webpack_require__.O();
-/******/ _N_E = __webpack_exports__;
-/******/ }
-]);
+});
