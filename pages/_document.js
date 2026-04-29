@@ -6,13 +6,7 @@ class MyDocument extends Document {
     render() {
         return (
             <Html lang="en">
-                <Head>
-                    {/* Semantic UI CSS retained during the migration so Tier 2 pages still render */}
-                    <link
-                        rel="stylesheet"
-                        href="https://cdn.jsdelivr.net/npm/semantic-ui@2/dist/semantic.min.css"
-                    />
-                </Head>
+                <Head />
                 <body className="bg-bg text-fg antialiased">
                     <script dangerouslySetInnerHTML={{ __html: NO_FLASH }} />
                     <Main />
