@@ -1,9 +1,26 @@
 import React, { Component } from 'react';
-import { Button, Message, Input } from 'semantic-ui-react';
+import { motion } from 'framer-motion';
+import { Search, Calendar, MapPin, ArrowRight, Ticket as TicketIcon, Sparkles } from 'lucide-react';
 import { contractAddress, getDeployedEventsInstance } from '../../ethereum/factory';
 import Layout from '../../components/layout';
 import { Link } from '../../routes';
 import Event from '../../ethereum/event';
+import {
+    Container,
+    Section,
+    Reveal,
+    Card,
+    Badge,
+    Button,
+    Input,
+    Divider,
+    EmptyState,
+    WalletPill
+} from '../../components/ui';
+import { cn } from '../../lib/cn';
+
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
 class ClientDashboard extends Component {
     static async getInitialProps() {
@@ -95,56 +112,120 @@ class ClientDashboard extends Component {
     renderEventCards() {
         const filteredEvents = this.getFilteredEvents();
         if (filteredEvents.length === 0) {
-            return <p className="empty-state">No events found.</p>;
+            return (
+                <EmptyState
+                    icon={Calendar}
+                    title="No events found"
+                    description="Try a different category or clear your search."
+                />
+            );
         }
 
         return (
-            <div className="events-list">
-                <div className="section-header">
-                    <h2>LIVE EVENTS</h2>
-                    <div className="line" />
+            <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3 mb-2">
+                    <span className="text-[11px] uppercase tracking-[0.18em] font-medium text-muted">Live events</span>
+                    <span className="h-px flex-1 bg-border" />
                 </div>
                 {filteredEvents.map((event, index) => {
                     const isSoldOut = event.ticketSupply > 0 && event.ticketsSold >= event.ticketSupply;
                     const isFeatured = index === 0;
                     const left = Math.max(event.ticketSupply - event.ticketsSold, 0);
-                    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][index % 12];
+                    const month = MONTHS[index % 12];
                     const day = String((index % 27) + 1).padStart(2, '0');
-                    const week = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][index % 7];
+                    const week = WEEKDAYS[index % 7];
 
                     return (
-                        <article key={event.address} className={`event-card ${isSoldOut ? 'sold-out' : ''} ${isFeatured ? 'featured' : ''}`}>
-                            <div className="date-col">
-                                {isFeatured && !isSoldOut ? <div className="featured-pill">FEATURED</div> : null}
-                                <small className="month">{month}</small>
-                                <span>{day}</span>
-                                <small className="weekday">{week}</small>
-                            </div>
-                            <div className="event-main">
-                                <h3>{event.name || 'Unnamed Event'}</h3>
-                                {event.eventDate ? <p className="event-date">Date: {event.eventDate}</p> : null}
-                                {event.description ? <p className="desc">{event.description}</p> : null}
-                                <p className="venue-row">
-                                    <span className="pin">◎</span>
-                                    <span className="contract">{event.address}</span>
-                                </p>
-                                <div className="tags">
-                                    <span className={`tag ${isSoldOut ? 'sold' : 'live'}`}>{isSoldOut ? 'SOLD OUT' : 'LIVE NOW'}</span>
-                                    <span className="tag">QR DELIVERY</span>
-                                    <span className="tag">ON-CHAIN</span>
+                        <Reveal key={event.address} delay={Math.min(index * 0.04, 0.24)}>
+                            <motion.article
+                                whileHover={isSoldOut ? undefined : { y: -2 }}
+                                transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+                                className={cn(
+                                    'group relative rounded-lg border bg-surface overflow-hidden',
+                                    'grid grid-cols-[88px_1fr] sm:grid-cols-[96px_1fr_180px] gap-0',
+                                    'transition-shadow',
+                                    isFeatured && !isSoldOut ? 'border-accent/40 shadow-[0_0_0_1px_rgb(var(--accent)/0.15)]' : 'border-border',
+                                    isSoldOut ? 'opacity-70' : 'hover:shadow-lift hover:border-fg/15'
+                                )}
+                            >
+                                <div className="relative bg-fg text-bg flex flex-col items-center justify-center font-serif py-4 px-2">
+                                    {isFeatured && !isSoldOut ? (
+                                        <span className="absolute top-2 left-2 text-[9px] tracking-[0.18em] uppercase font-sans font-semibold text-accent">
+                                            Featured
+                                        </span>
+                                    ) : null}
+                                    <span className="text-[11px] tracking-[0.2em] font-sans font-medium text-bg/70">{month}</span>
+                                    <span className="text-4xl leading-none mt-0.5">{day}</span>
+                                    <span className="text-[10px] tracking-[0.2em] font-sans font-medium text-bg/60 mt-1">{week}</span>
                                 </div>
-                            </div>
-                            <div className="event-price">
-                                {!isSoldOut ? <p>FROM</p> : null}
-                                {!isSoldOut ? <h4>${event.ticketPriceWei}</h4> : <h4 className="sold-out-text">SOLD OUT</h4>}
-                                {!isSoldOut ? (
-                                    <Link route={`/events/${event.address}/client`} legacyBehavior>
-                                        <a><Button className="buy-btn">{left > 0 ? 'BUY NOW' : 'CHECKOUT'}</Button></a>
-                                    </Link>
-                                ) : null}
-                                {!isSoldOut ? <small className="left-count">{left} LEFT</small> : null}
-                            </div>
-                        </article>
+
+                                <div className="p-5 sm:p-6 min-w-0">
+                                    <h3 className="font-serif text-xl sm:text-2xl text-fg leading-tight tracking-tight truncate">
+                                        {event.name || 'Unnamed Event'}
+                                    </h3>
+                                    {event.eventDate ? (
+                                        <p className="text-xs text-muted mt-1 inline-flex items-center gap-1.5">
+                                            <Calendar size={12} strokeWidth={1.75} />
+                                            {event.eventDate}
+                                        </p>
+                                    ) : null}
+                                    {event.description ? (
+                                        <p className="text-sm text-fg/70 mt-2 line-clamp-2">{event.description}</p>
+                                    ) : null}
+                                    <div className="mt-3 flex items-center gap-1.5 text-[11px] text-muted">
+                                        <MapPin size={11} strokeWidth={1.75} />
+                                        <span className="font-mono truncate">{event.address}</span>
+                                    </div>
+                                    <div className="mt-3 flex items-center gap-1.5 flex-wrap">
+                                        <Badge tone={isSoldOut ? 'danger' : 'accent'}>
+                                            {isSoldOut ? 'Sold out' : 'Live'}
+                                        </Badge>
+                                        <Badge tone="outline">QR delivery</Badge>
+                                        <Badge tone="outline">On-chain</Badge>
+                                    </div>
+                                </div>
+
+                                <div className="hidden sm:flex flex-col items-end justify-center p-5 border-l border-border bg-surface-2/30">
+                                    {!isSoldOut ? (
+                                        <>
+                                            <span className="text-[10px] tracking-[0.18em] uppercase text-muted font-medium">From</span>
+                                            <span className="font-serif text-3xl text-fg mt-0.5">${event.ticketPriceWei}</span>
+                                            <Link route={`/events/${event.address}/client`} legacyBehavior>
+                                                <a className="mt-3 w-full">
+                                                    <Button size="sm" className="w-full" rightIcon={<ArrowRight size={14} strokeWidth={2} />}>
+                                                        {left > 0 ? 'Buy now' : 'Checkout'}
+                                                    </Button>
+                                                </a>
+                                            </Link>
+                                            <span className="text-[11px] text-muted mt-2">{left} left</span>
+                                        </>
+                                    ) : (
+                                        <span className="font-serif text-2xl text-danger">Sold out</span>
+                                    )}
+                                </div>
+
+                                <div className="sm:hidden col-span-2 flex items-center justify-between p-4 border-t border-border bg-surface-2/30">
+                                    {!isSoldOut ? (
+                                        <>
+                                            <div>
+                                                <span className="text-[10px] tracking-[0.18em] uppercase text-muted">From</span>
+                                                <div className="font-serif text-2xl text-fg leading-none mt-0.5">${event.ticketPriceWei}</div>
+                                                <span className="text-[11px] text-muted">{left} left</span>
+                                            </div>
+                                            <Link route={`/events/${event.address}/client`} legacyBehavior>
+                                                <a>
+                                                    <Button size="sm" rightIcon={<ArrowRight size={14} strokeWidth={2} />}>
+                                                        Buy
+                                                    </Button>
+                                                </a>
+                                            </Link>
+                                        </>
+                                    ) : (
+                                        <span className="font-serif text-xl text-danger">Sold out</span>
+                                    )}
+                                </div>
+                            </motion.article>
+                        </Reveal>
                     );
                 })}
             </div>
@@ -159,241 +240,110 @@ class ClientDashboard extends Component {
         );
 
         return (
-            <Layout>
-                <div className="tm-portal">
-                    <div className="home-header">
-                        <h1>FIND YOUR NEXT EVENT</h1>
-                        <p>Connected wallet: {this.state.clientAccount || 'Not connected'}</p>
-                    </div>
-                    <div className="summary-row">
-                        <div className="summary-card">
-                            <h3>My Summary</h3>
-                            <p>Events: {this.props.events.length}</p>
-                            <p>My Tickets: {this.state.myTickets.length}</p>
-                            <p>Tickets Available: {ticketsAvailableTotal}</p>
-                        </div>
-                        <div className="summary-card">
-                            <h3>My Tickets</h3>
-                            <p>Total Tickets: {this.state.myTickets.length}</p>
-                            <Link route="/client/tickets" legacyBehavior>
-                                <a><Button color="blue">My Tickets</Button></a>
-                            </Link>
-                        </div>
-                    </div>
-                    <section className="search-bar" style={{ marginTop: '0px' }}>
-                        <Input
-                            fluid
-                            placeholder="Search events by name or contract address"
-                            value={this.state.searchTerm}
-                            onChange={(event) => this.setState({ searchTerm: event.target.value })}
-                        />
-                    </section>
-                    <section className="pill-row">
-                        {categories.map((category) => (
-                            <button
-                                key={category}
-                                type="button"
-                                className={`pill ${this.state.selectedCategory === category ? 'active' : ''}`}
-                                onClick={() => this.setState({ selectedCategory: category })}
-                            >
-                                {category}
-                            </button>
-                        ))}
-                    </section>
-                    {this.renderEventCards()}
-                </div>
-                {this.props.loadError ? <Message error content={this.props.loadError} style={{ marginTop: '14px' }} /> : null}
+            <Layout title="Discover events" wallet={this.state.clientAccount}>
+                <Section className="pt-12 pb-6">
+                    <Container>
+                        <Reveal>
+                            <Badge tone="outline" className="mb-5">
+                                <Sparkles size={11} className="text-accent" /> Curated this week
+                            </Badge>
+                        </Reveal>
+                        <Reveal delay={0.05}>
+                            <h1 className="font-serif text-display-lg text-fg text-balance max-w-3xl tracking-tight">
+                                Find your next event.
+                            </h1>
+                        </Reveal>
+                        <Reveal delay={0.1}>
+                            <p className="mt-4 text-[15px] text-muted max-w-xl">
+                                {this.state.clientAccount
+                                    ? <>Connected as <span className="font-mono text-fg/80">{this.state.clientAccount.slice(0, 6)}…{this.state.clientAccount.slice(-4)}</span></>
+                                    : 'Connect your wallet to begin.'}
+                            </p>
+                        </Reveal>
 
-                <style jsx>{`
-                    .tm-portal {
-                        font-family: 'Nunito Sans', sans-serif;
-                    }
-                    .home-header {
-                        background: #002060;
-                        color: white;
-                        border-radius: 12px;
-                        padding: 14px 16px;
-                        margin-bottom: 12px;
-                    }
-                    .home-header h1 {
-                        margin: 0;
-                        font-family: 'Barlow Condensed', sans-serif;
-                        font-size: 2rem;
-                        letter-spacing: 0.03em;
-                    }
-                    .home-header p {
-                        margin: 6px 0 0;
-                        color: #cbd5e1;
-                        font-size: 0.85rem;
-                    }
-                    .summary-row {
-                        display: grid;
-                        grid-template-columns: 1fr 1fr;
-                        gap: 10px;
-                        margin-bottom: 12px;
-                    }
-                    .summary-card {
-                        background: white;
-                        border-radius: 12px;
-                        border: 1px solid #e2e8f0;
-                        padding: 12px;
-                    }
-                    .summary-card h3 {
-                        margin: 0 0 8px;
-                        font-family: 'Barlow Condensed', sans-serif;
-                        font-size: 1.35rem;
-                        color: #002060;
-                    }
-                    .summary-card p { margin: 4px 0; color: #334155; }
-                    .muted { color: #64748b; font-size: 0.85rem; }
-                    .event-card h3 {
-                        font-family: 'Barlow Condensed', sans-serif;
-                        font-weight: 800;
-                        letter-spacing: 0.03em;
-                    }
-                    .search-bar {
-                        background: white;
-                        padding: 10px;
-                        border-radius: 12px;
-                        margin-top: 12px;
-                    }
-                    .pill-row {
-                        margin-top: 10px;
-                        margin-bottom: 10px;
-                        display: flex;
-                        gap: 8px;
-                        flex-wrap: wrap;
-                    }
-                    .pill {
-                        border: 1px solid #cbd5e1;
-                        background: white;
-                        border-radius: 999px;
-                        padding: 6px 12px;
-                        font-weight: 700;
-                        cursor: pointer;
-                    }
-                    .pill.active {
-                        background: #026CDF;
-                        color: white;
-                        border-color: #026CDF;
-                    }
-                    .events-list { display: flex; flex-direction: column; gap: 10px; }
-                    .section-header {
-                        display: flex;
-                        align-items: center;
-                        gap: 10px;
-                        margin-top: 2px;
-                        margin-bottom: 4px;
-                    }
-                    .section-header h2 {
-                        margin: 0;
-                        font-family: 'Barlow Condensed', sans-serif;
-                        font-weight: 800;
-                        font-size: 1.35rem;
-                        letter-spacing: 0.06em;
-                        color: #002060;
-                    }
-                    .section-header .line {
-                        height: 1px;
-                        flex: 1;
-                        background: #cbd5e1;
-                    }
-                    .event-card {
-                        background: white;
-                        border-radius: 16px;
-                        display: grid;
-                        grid-template-columns: 86px 1fr 170px;
-                        gap: 12px;
-                        border: 1px solid #e2e8f0;
-                        overflow: hidden;
-                        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-                    }
-                    .event-card.featured { border: 2px solid #026CDF; }
-                    .event-card:not(.featured):hover {
-                        border-color: #026CDF;
-                        box-shadow: 0 6px 18px rgba(2, 108, 223, 0.12);
-                    }
-                    .event-card.sold-out { opacity: 0.82; background: #f3f4f6; }
-                    .date-col {
-                        background: #002060;
-                        color: white;
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        justify-content: center;
-                        font-family: 'Barlow Condensed', sans-serif;
-                        font-size: 2.1rem;
-                        position: relative;
-                        padding: 8px 0;
-                    }
-                    .featured-pill {
-                        position: absolute;
-                        top: 6px;
-                        left: 6px;
-                        background: #026CDF;
-                        border-radius: 6px;
-                        padding: 2px 7px;
-                        font-size: 0.68rem;
-                        text-transform: uppercase;
-                        font-weight: 800;
-                        letter-spacing: 0.04em;
-                    }
-                    .date-col .month { font-size: 1.1rem; color: #00B9F2; letter-spacing: 0.07em; }
-                    .date-col .weekday { font-size: 0.9rem; letter-spacing: 0.07em; opacity: 0.92; }
-                    .event-main { padding: 10px 0; }
-                    .event-main h3 {
-                        margin: 0 0 5px;
-                        font-size: 13px;
-                        font-weight: 800;
-                        color: #0f172a;
-                    }
-                    .event-date { font-size: 0.78rem; color: #1e3a8a; font-weight: 700; }
-                    .desc { font-size: 0.8rem; color: #475569; }
-                    .event-main p { margin: 0 0 4px; color: #64748b; }
-                    .venue-row {
-                        display: flex;
-                        align-items: center;
-                        gap: 6px;
-                    }
-                    .pin {
-                        color: #94a3b8;
-                        font-size: 0.78rem;
-                    }
-                    .contract { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.75rem; color: #64748b; word-break: break-all; }
-                    .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
-                    .tag { background: #dbeafe; color: #002060; border-radius: 999px; padding: 3px 8px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; }
-                    .tag.live { background: #dcfce7; color: #00A651; }
-                    .tag.sold { background: #fee2e2; color: #E53E3E; }
-                    .event-price {
-                        padding: 10px;
-                        display: flex;
-                        flex-direction: column;
-                        align-items: flex-end;
-                        justify-content: center;
-                    }
-                    .event-price p { margin: 0; color: #64748b; font-size: 0.76rem; }
-                    .event-price h4 {
-                        margin: 2px 0 8px;
-                        color: #002060;
-                        font-family: 'Barlow Condensed', sans-serif;
-                        font-size: 2.2rem;
-                    }
-                    .sold-out-text { color: #ef4444 !important; font-size: 1.45rem !important; }
-                    .buy-btn {
-                        width: 128px;
-                        border-radius: 14px !important;
-                        background: #026CDF !important;
-                        color: #fff !important;
-                        font-weight: 700 !important;
-                    }
-                    .left-count { color: #64748b; font-size: 0.72rem; margin-top: 6px; }
-                    .empty-state { color: #64748b; padding: 16px; background: white; border-radius: 12px; }
-                    @media (max-width: 800px) {
-                        .summary-row { grid-template-columns: 1fr; }
-                        .event-card { grid-template-columns: 78px 1fr; }
-                        .event-price { align-items: flex-start; grid-column: span 2; border-top: 1px solid #e2e8f0; }
-                    }
-                `}</style>
+                        <Reveal delay={0.15}>
+                            <div className="mt-10 grid gap-3 sm:grid-cols-3">
+                                <Card className="p-5">
+                                    <span className="text-[11px] uppercase tracking-[0.18em] font-medium text-muted">Events</span>
+                                    <div className="font-serif text-3xl text-fg mt-2">{this.props.events.length}</div>
+                                </Card>
+                                <Card className="p-5">
+                                    <span className="text-[11px] uppercase tracking-[0.18em] font-medium text-muted">My tickets</span>
+                                    <div className="flex items-end justify-between gap-2 mt-2">
+                                        <div className="font-serif text-3xl text-fg">{this.state.myTickets.length}</div>
+                                        <Link route="/client/tickets" legacyBehavior>
+                                            <a>
+                                                <Button size="sm" variant="outline" rightIcon={<ArrowRight size={13} strokeWidth={2} />}>
+                                                    View
+                                                </Button>
+                                            </a>
+                                        </Link>
+                                    </div>
+                                </Card>
+                                <Card className="p-5">
+                                    <span className="text-[11px] uppercase tracking-[0.18em] font-medium text-muted">Tickets available</span>
+                                    <div className="font-serif text-3xl text-fg mt-2">{ticketsAvailableTotal}</div>
+                                </Card>
+                            </div>
+                        </Reveal>
+                    </Container>
+                </Section>
+
+                <Section className="py-6">
+                    <Container>
+                        <Reveal>
+                            <div className="relative">
+                                <Search size={16} strokeWidth={1.75} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+                                <Input
+                                    placeholder="Search events by name or contract address"
+                                    value={this.state.searchTerm}
+                                    onChange={(event) => this.setState({ searchTerm: event.target.value })}
+                                    className="pl-11 h-12"
+                                />
+                            </div>
+                        </Reveal>
+
+                        <Reveal delay={0.05}>
+                            <div className="mt-4 flex gap-2 flex-wrap">
+                                {categories.map((category) => {
+                                    const active = this.state.selectedCategory === category;
+                                    return (
+                                        <button
+                                            key={category}
+                                            type="button"
+                                            onClick={() => this.setState({ selectedCategory: category })}
+                                            className={cn(
+                                                'h-9 px-4 rounded-full text-sm font-medium transition-all duration-200 ease-premium focus-ring',
+                                                active
+                                                    ? 'bg-fg text-bg border border-fg'
+                                                    : 'bg-surface text-fg/70 border border-border hover:text-fg hover:border-fg/30'
+                                            )}
+                                        >
+                                            {category}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </Reveal>
+                    </Container>
+                </Section>
+
+                <Section className="pt-2 pb-20">
+                    <Container>
+                        {this.renderEventCards()}
+                        {this.props.loadError ? (
+                            <Card className="mt-6 p-5 border-danger/30 bg-danger/5">
+                                <div className="flex items-start gap-3">
+                                    <TicketIcon size={16} className="text-danger mt-0.5" strokeWidth={1.75} />
+                                    <div>
+                                        <p className="text-sm font-medium text-fg">Unable to load events</p>
+                                        <p className="text-sm text-muted mt-0.5">{this.props.loadError}</p>
+                                    </div>
+                                </div>
+                            </Card>
+                        ) : null}
+                    </Container>
+                </Section>
             </Layout>
         );
     }

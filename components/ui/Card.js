@@ -6,21 +6,28 @@ export const Card = forwardRef(function Card(
     { as: Comp = 'div', className, interactive = false, children, ...props },
     ref
 ) {
-    const Tag = interactive ? motion.div : Comp;
+    const cls = cn(
+        'rounded-lg bg-surface border border-border',
+        interactive && 'transition-shadow hover:shadow-lift hover:border-fg/15 cursor-pointer',
+        className
+    );
+    if (interactive) {
+        return (
+            <motion.div
+                ref={ref}
+                whileHover={{ y: -2 }}
+                transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+                className={cls}
+                {...props}
+            >
+                {children}
+            </motion.div>
+        );
+    }
     return (
-        <Tag
-            ref={ref}
-            whileHover={interactive ? { y: -2 } : undefined}
-            transition={interactive ? { type: 'spring', stiffness: 280, damping: 24 } : undefined}
-            className={cn(
-                'rounded-lg bg-surface border border-border',
-                interactive && 'transition-shadow hover:shadow-lift hover:border-fg/15 cursor-pointer',
-                className
-            )}
-            {...props}
-        >
+        <Comp ref={ref} className={cls} {...props}>
             {children}
-        </Tag>
+        </Comp>
     );
 });
 
