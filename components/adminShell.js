@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button, Icon } from 'semantic-ui-react';
-import { Link } from '../routes';
+import { Link, Router } from '../routes';
 import Layout from './layout';
 
 const navSections = [
@@ -10,14 +10,6 @@ const navSections = [
             { label: 'Dashboard', route: '/admin/dashboard' },
             { label: 'Events', route: '/admin/events' },
             { label: 'Ticket Validation', route: '/admin/ticket-validation' }
-        ]
-    },
-    {
-        title: 'Finance',
-        items: [
-            { label: 'Revenue', route: '/admin/revenue' },
-            { label: 'Payouts', route: '/admin/payouts' },
-            { label: 'Invoices', route: '/admin/invoices' }
         ]
     },
     {
@@ -41,6 +33,44 @@ const AdminShell = ({
     heroActions,
     children
 }) => {
+    const [checkedAuth, setCheckedAuth] = React.useState(false);
+    const [isAuthorized, setIsAuthorized] = React.useState(false);
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        const isAuthenticated = window.localStorage.getItem('adminAuthenticated') === 'true';
+        const adminAccountValue = window.localStorage.getItem('adminAccount');
+
+        if (!isAuthenticated || !adminAccountValue) {
+            Router.pushRoute('/admin/login');
+            setCheckedAuth(true);
+            setIsAuthorized(false);
+            return;
+        }
+
+        setIsAuthorized(true);
+        setCheckedAuth(true);
+    }, []);
+
+    if (!checkedAuth) {
+        return (
+            <Layout>
+                <div style={{ padding: '32px', textAlign: 'center' }}>Checking admin session...</div>
+            </Layout>
+        );
+    }
+
+    if (!isAuthorized) {
+        return (
+            <Layout>
+                <div style={{ padding: '32px', textAlign: 'center' }}>Redirecting to admin login...</div>
+            </Layout>
+        );
+    }
+
     return (
         <Layout>
             <div className="admin-shell">
@@ -67,8 +97,8 @@ const AdminShell = ({
                         ))}
                     </div>
                     <div className="wallet-panel">
-                        <p className="group-title">Connected Wallet</p>
-                        <p className="wallet-address">{walletAddress || 'Not connected'}</p>
+                        <p className="group-title">Admin Session</p>
+                        <p className="wallet-address">{walletAddress || 'Not logged in'}</p>
                     </div>
                 </aside>
 

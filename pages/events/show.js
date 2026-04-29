@@ -1,6 +1,5 @@
-
 import React, { Component } from 'react';
-import { Card, Button, Message, Label } from 'semantic-ui-react';
+import { Message, Icon } from 'semantic-ui-react';
 import Layout from '../../components/layout';
 import Event from '../../ethereum/event';
 import { Link } from '../../routes';
@@ -20,7 +19,7 @@ class EventShow extends Component {
             eventDate: summary[5] || '',
             owner,
             contractAddress: props.query.address,
-            successMessage: props.query.successMessage || '',
+            successMessage: props.query.successMessage || ''
         };
     }
 
@@ -28,7 +27,7 @@ class EventShow extends Component {
         super(props);
         this.state = {
             errorMessage: '',
-            successMessage: this.props.successMessage,
+            successMessage: this.props.successMessage
         };
     }
 
@@ -38,7 +37,65 @@ class EventShow extends Component {
         }
     }
 
-    renderCards() {
+    renderActionDeck() {
+        const { contractAddress } = this.props;
+        const actions = [
+            {
+                label: 'Validate Ticket QR',
+                route: `/events/${contractAddress}/validate`,
+                icon: 'qrcode',
+                primary: true
+            },
+            {
+                label: 'View Owners',
+                route: `/events/${contractAddress}/owners`,
+                icon: 'users',
+                primary: true
+            },
+            {
+                label: 'Use a Ticket',
+                route: `/events/${contractAddress}/useTicket`,
+                icon: 'check circle',
+                primary: false
+            },
+            {
+                label: 'Request a Refund',
+                route: `/events/${contractAddress}/refundTicket`,
+                icon: 'undo',
+                primary: false
+            },
+            {
+                label: 'Transfer Ticket',
+                route: `/events/${contractAddress}/transferTicket`,
+                icon: 'exchange',
+                primary: false
+            },
+            {
+                label: 'Open Client Purchase View',
+                route: `/events/${contractAddress}/client`,
+                icon: 'external',
+                primary: false
+            }
+        ];
+
+        return (
+            <div className="action-button-grid">
+                {actions.map((action) => (
+                    <Link legacyBehavior key={action.route} route={action.route}>
+                        <a className={`action-button ${action.primary ? 'primary' : 'secondary'}`}>
+                            <span className="button-icon">
+                                <Icon name={action.icon} />
+                            </span>
+                            <span className="button-label">{action.label}</span>
+                        </a>
+                    </Link>
+                ))}
+            </div>
+        );
+    }
+
+    render() {
+        const { errorMessage, successMessage } = this.state;
         const {
             name,
             ticketPrice,
@@ -46,87 +103,326 @@ class EventShow extends Component {
             ticketsSold,
             description,
             eventDate,
-            owner
+            owner,
+            contractAddress
         } = this.props;
 
-        const items = [
-            {
-                header: name,
-                description: 'Admin view for this event'
-            },
-            {
-                header: ticketPrice,
-                meta: 'in wei',
-                description: 'Price of one ticket'
-            },
-            {
-                header: ticketSupply - ticketsSold,
-                description: 'Total number of tickets available for the event'
-            },
-            {
-                header: ticketsSold,
-                description: 'Number of tickets sold'
-            },
-            {
-                header: owner,
-                description: 'Event owner wallet address'
-            },
-            {
-                header: eventDate || 'Not set',
-                description: 'Event date'
-            },
-            {
-                header: description || 'No description',
-                description: 'Event description'
-            }
-        ];
-        return <Card.Group items={items} />;
-    }
-
-    render() {
-        const { errorMessage, successMessage } = this.state;
+        const availableTickets = Math.max(parseInt(ticketSupply, 10) - parseInt(ticketsSold, 10), 0);
+        const sellThrough = parseInt(ticketSupply, 10)
+            ? Math.min(Math.round((parseInt(ticketsSold, 10) / parseInt(ticketSupply, 10)) * 100), 100)
+            : 0;
 
         return (
             <Layout>
-                <h3>Event Admin Dashboard</h3>
-                <Label color="blue" content="Admin" />
-                {this.renderCards()}
-                {errorMessage && (
-                    <Message error header="Oops!" content={errorMessage} style={{ marginTop: '10px' }} />
-                )}
-                {successMessage && (
-                    <Message success header="Success!" content={successMessage} style={{ marginTop: '10px' }} />
-                )}
-                <Link legacyBehavior route={`/events/${this.props.contractAddress}/owners`}>
-                    <a>
-                        <Button primary>View Owners</Button>
-                    </a>
-                </Link>
-                <Link legacyBehavior route={`/events/${this.props.contractAddress}/validate`}>
-                    <a>
-                        <Button primary style={{ marginLeft: '10px' }}>Validate Ticket QR</Button>
-                    </a>
-                </Link>
-                <Link legacyBehavior route={`/events/${this.props.contractAddress}/useTicket`}>
-                    <a>
-                        <Button primary style={{ marginLeft: '10px' }}>Use a Ticket</Button>
-                    </a>
-                </Link>
-                <Link legacyBehavior route={`/events/${this.props.contractAddress}/refundTicket`}>
-                    <a>
-                        <Button primary style={{ marginLeft: '10px' }}>Request a refund</Button>
-                    </a>
-                </Link>
-                <Link legacyBehavior route={`/events/${this.props.contractAddress}/transferTicket`}>
-                    <a>
-                        <Button primary style={{ marginLeft: '10px' }}>Transfer Ticket</Button>
-                    </a>
-                </Link>
-                <Link legacyBehavior route={`/events/${this.props.contractAddress}/client`}>
-                    <a>
-                        <Button style={{ marginLeft: '10px' }}>Open Client Purchase View</Button>
-                    </a>
-                </Link>
+                <div className="tm-admin-page">
+                    <section className="hero-panel">
+                        <div className="hero-copy">
+                            <span className="eyebrow">Event Admin Dashboard</span>
+                            <h1>{name || 'Unnamed Event'}</h1>
+                            <p className="hero-description">
+                                Ticketmaster-style command center for event operations, inventory control, ticket validation, and fan purchase flows.
+                            </p>
+                            <div className="hero-meta">
+                                <span className="meta-pill admin">ADMIN</span>
+                                <span className="meta-pill">{eventDate || 'Date not set'}</span>
+                                <span className="meta-pill">Sell-through {sellThrough}%</span>
+                            </div>
+                        </div>
+                        <div className="hero-side">
+                            <div className="hero-side-card">
+                                <p className="side-label">Live Snapshot</p>
+                                <h2>{availableTickets}</h2>
+                                <p className="side-copy">Tickets still available for purchase</p>
+                                <div className="side-row">
+                                    <span>Sold</span>
+                                    <strong>{ticketsSold}</strong>
+                                </div>
+                                <div className="side-row">
+                                    <span>Price</span>
+                                    <strong>{ticketPrice} wei</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {errorMessage ? (
+                        <Message error header="Oops!" content={errorMessage} style={{ marginTop: '12px' }} />
+                    ) : null}
+                    {successMessage ? (
+                        <Message success header="Success!" content={successMessage} style={{ marginTop: '12px' }} />
+                    ) : null}
+
+                    <section className="detail-grid">
+                        <article className="detail-panel spotlight">
+                            <span className="section-kicker">Event Story</span>
+                            <h3>Event Overview</h3>
+                            <p className="detail-copy">
+                                {description || 'No event description has been added yet.'}
+                            </p>
+                        </article>
+
+                        <article className="detail-panel">
+                            <span className="section-kicker">Contract</span>
+                            <h3>Owner Wallet</h3>
+                            <p className="mono">{owner}</p>
+                            <h3 style={{ marginTop: '18px' }}>Event Contract</h3>
+                            <p className="mono">{contractAddress}</p>
+                        </article>
+                    </section>
+
+                    <section className="action-rail">
+                        <div className="action-rail-head">
+                            <span className="section-kicker">Operations</span>
+                            <h3>Action Center</h3>
+                            <p>Launch the most important admin workflows from one clean control surface.</p>
+                        </div>
+                        {this.renderActionDeck()}
+                    </section>
+                </div>
+
+                <style jsx>{`
+                    .tm-admin-page {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 18px;
+                        font-family: 'Nunito Sans', sans-serif;
+                    }
+                    .hero-panel {
+                        display: grid;
+                        grid-template-columns: 1.2fr 0.8fr;
+                        gap: 18px;
+                        padding: 28px;
+                        border-radius: 28px;
+                        background:
+                            radial-gradient(circle at top right, rgba(0, 185, 242, 0.26), transparent 28%),
+                            linear-gradient(125deg, #00112c 0%, #002d72 55%, #026cdf 100%);
+                        color: white;
+                        box-shadow: 0 24px 48px rgba(0, 32, 96, 0.22);
+                    }
+                    .eyebrow,
+                    .section-kicker {
+                        display: inline-block;
+                        margin-bottom: 10px;
+                        color: #7dd3fc;
+                        font-size: 0.78rem;
+                        font-weight: 800;
+                        letter-spacing: 0.12em;
+                        text-transform: uppercase;
+                    }
+                    .hero-copy h1 {
+                        margin: 0 0 12px;
+                        font-family: 'Barlow Condensed', sans-serif;
+                        font-size: 3.2rem;
+                        line-height: 0.96;
+                        text-transform: uppercase;
+                        letter-spacing: 0.03em;
+                    }
+                    .hero-description {
+                        max-width: 650px;
+                        color: #dbeafe;
+                        font-size: 1rem;
+                        line-height: 1.7;
+                        margin-bottom: 18px;
+                    }
+                    .hero-meta {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 10px;
+                    }
+                    .meta-pill {
+                        border-radius: 999px;
+                        padding: 8px 14px;
+                        background: rgba(255, 255, 255, 0.12);
+                        border: 1px solid rgba(255, 255, 255, 0.16);
+                        font-size: 0.8rem;
+                        font-weight: 800;
+                        letter-spacing: 0.05em;
+                    }
+                    .meta-pill.admin {
+                        background: white;
+                        color: #026cdf;
+                    }
+                    .hero-side {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    .hero-side-card {
+                        width: 100%;
+                        max-width: 360px;
+                        padding: 22px;
+                        border-radius: 24px;
+                        background: rgba(255, 255, 255, 0.12);
+                        border: 1px solid rgba(255, 255, 255, 0.16);
+                        backdrop-filter: blur(10px);
+                    }
+                    .side-label {
+                        margin: 0 0 8px;
+                        color: #bfdbfe;
+                        font-size: 0.76rem;
+                        font-weight: 800;
+                        letter-spacing: 0.12em;
+                        text-transform: uppercase;
+                    }
+                    .hero-side-card h2 {
+                        margin: 0 0 8px;
+                        font-family: 'Barlow Condensed', sans-serif;
+                        font-size: 3rem;
+                        line-height: 1;
+                    }
+                    .side-copy {
+                        margin: 0 0 14px;
+                        color: #dbeafe;
+                    }
+                    .side-row {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 10px 0;
+                        border-top: 1px solid rgba(255, 255, 255, 0.16);
+                    }
+                    .side-row span {
+                        color: #dbeafe;
+                        font-size: 0.88rem;
+                    }
+                    .side-row strong {
+                        font-size: 0.92rem;
+                    }
+                    .detail-grid {
+                        display: grid;
+                        grid-template-columns: 1.15fr 0.85fr;
+                        gap: 18px;
+                    }
+                    .detail-panel {
+                        padding: 22px;
+                        border-radius: 22px;
+                        background: white;
+                        border: 1px solid #e2e8f0;
+                        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+                    }
+                    .detail-panel.spotlight {
+                        background:
+                            radial-gradient(circle at top right, rgba(0, 185, 242, 0.08), transparent 30%),
+                            linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+                    }
+                    .detail-panel h3 {
+                        margin: 0 0 10px;
+                        color: #0f172a;
+                        font-family: 'Barlow Condensed', sans-serif;
+                        font-size: 1.7rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.04em;
+                    }
+                    .detail-copy {
+                        margin: 0;
+                        color: #334155;
+                        font-size: 1rem;
+                        line-height: 1.8;
+                    }
+                    .mono {
+                        margin: 0;
+                        color: #334155;
+                        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                        font-size: 0.88rem;
+                        line-height: 1.7;
+                        word-break: break-all;
+                    }
+                    .action-rail {
+                        padding: 22px;
+                        border-radius: 24px;
+                        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+                        border: 1px solid #dbeafe;
+                        box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+                    }
+                    .action-rail-head h3 {
+                        margin: 0 0 8px;
+                        color: #0f172a;
+                        font-family: 'Barlow Condensed', sans-serif;
+                        font-size: 2rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.04em;
+                    }
+                    .action-rail-head p {
+                        margin: 0 0 16px;
+                        color: #64748b;
+                        max-width: 640px;
+                        line-height: 1.6;
+                    }
+                    .action-button-grid {
+                        display: grid;
+                        grid-template-columns: repeat(3, minmax(0, 1fr));
+                        gap: 12px;
+                    }
+                    .action-button {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 10px;
+                        min-height: 58px;
+                        padding: 14px 18px;
+                        border-radius: 18px;
+                        font-weight: 800;
+                        letter-spacing: 0.01em;
+                        text-align: center;
+                        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+                    }
+                    .action-button.primary {
+                        background: linear-gradient(135deg, #002060 0%, #026cdf 100%);
+                        border: 1px solid transparent;
+                        color: white;
+                        box-shadow: 0 16px 32px rgba(2, 108, 223, 0.2);
+                    }
+                    .action-button.secondary {
+                        background: white;
+                        border: 1px solid #dbe4f0;
+                        color: #0f172a;
+                    }
+                    .action-button:hover {
+                        transform: translateY(-1px);
+                        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+                    }
+                    .button-icon {
+                        width: 32px;
+                        height: 32px;
+                        border-radius: 10px;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-shrink: 0;
+                    }
+                    .action-button.primary .button-icon {
+                        background: rgba(255, 255, 255, 0.16);
+                    }
+                    .action-button.secondary .button-icon {
+                        background: #eff6ff;
+                        color: #026cdf;
+                    }
+                    .button-label {
+                        display: inline-block;
+                        font-size: 0.92rem;
+                        line-height: 1.3;
+                    }
+                    @media (max-width: 980px) {
+                        .hero-panel,
+                        .detail-grid {
+                            grid-template-columns: 1fr;
+                        }
+                        .action-button-grid {
+                            grid-template-columns: repeat(2, minmax(0, 1fr));
+                        }
+                    }
+                    @media (max-width: 680px) {
+                        .hero-panel {
+                            padding: 20px;
+                        }
+                        .hero-copy h1 {
+                            font-size: 2.4rem;
+                        }
+                        .action-button-grid {
+                            grid-template-columns: 1fr;
+                        }
+                    }
+                `}</style>
             </Layout>
         );
     }

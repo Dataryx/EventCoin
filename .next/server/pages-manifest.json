@@ -2,11 +2,7 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/client/tickets": "pages/client/tickets.js",
+  "/admin/events": "pages/admin/events.js",
   "/admin/dashboard": "pages/admin/dashboard.js",
-  "/client/dashboard": "pages/client/dashboard.js",
-  "/": "pages/index.js",
-  "/admin/ticket-validation": "pages/admin/ticket-validation.js",
-  "/events/clientShow": "pages/events/clientShow.js",
-  "/events/owners/validateTicket": "pages/events/owners/validateTicket.js"
+  "/admin/ticket-validation": "pages/admin/ticket-validation.js"
 }
