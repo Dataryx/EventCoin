@@ -111,9 +111,9 @@ class EventShow extends Component {
                                     <Wallet size={14} className="text-muted" />
                                     <span className="font-mono text-[12px]" title={owner}>{truncate(owner)}</span>
                                 </span>
-                                <span className="inline-flex items-center gap-1.5">
-                                    <MapPin size={13} className="text-muted shrink-0" />
-                                    <span className="font-mono text-[12px] text-muted">{contractAddress}</span>
+                                <span className="inline-flex items-start gap-1.5 max-w-full">
+                                    <MapPin size={13} className="text-muted shrink-0 mt-0.5" />
+                                    <span className="font-mono text-[12px] text-muted break-all">{contractAddress}</span>
                                 </span>
                             </div>
                         </Reveal>
@@ -125,11 +125,17 @@ class EventShow extends Component {
                         <div className="grid sm:grid-cols-3 gap-3">
                             {stats.map((s, i) => (
                                 <Reveal key={s.label} delay={i * 0.05}>
-                                    <Card className="p-5">
+                                    <Card className="p-5 min-w-0 overflow-hidden">
                                         <span className="text-[10px] tracking-[0.18em] uppercase text-muted font-medium">{s.label}</span>
-                                        <div className="font-serif text-3xl text-fg mt-2 inline-flex items-baseline gap-2">
-                                            <span className={s.mono ? 'font-mono text-2xl' : ''}>{s.value}</span>
-                                            {s.suffix ? <span className="text-xs uppercase tracking-[0.18em] text-muted font-sans">{s.suffix}</span> : null}
+                                        <div className={`mt-2 ${s.mono ? 'flex flex-col gap-1' : 'inline-flex items-baseline gap-2'}`}>
+                                            <span
+                                                className={s.mono
+                                                    ? 'font-mono text-fg text-lg break-all leading-tight'
+                                                    : 'font-serif text-fg text-3xl tabular-nums'}
+                                            >
+                                                {s.value}
+                                            </span>
+                                            {s.suffix ? <span className="text-[10px] uppercase tracking-[0.18em] text-muted font-sans">{s.suffix}</span> : null}
                                         </div>
                                     </Card>
                                 </Reveal>

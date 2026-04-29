@@ -134,16 +134,22 @@ class AdminDashboard extends Component {
                         const Icon = s.icon;
                         return (
                             <Reveal key={s.title} delay={i * 0.04}>
-                                <Card className="p-5">
-                                    <div className="flex items-start justify-between">
-                                        <span className="text-[10px] tracking-[0.18em] uppercase text-muted font-medium">{s.title}</span>
-                                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-accent/10 text-accent">
+                                <Card className="p-5 min-w-0 overflow-hidden">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <span className="text-[10px] tracking-[0.18em] uppercase text-muted font-medium truncate">{s.title}</span>
+                                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-accent/10 text-accent shrink-0">
                                             <Icon size={13} strokeWidth={1.75} />
                                         </span>
                                     </div>
-                                    <div className="font-serif text-3xl text-fg mt-3 inline-flex items-baseline gap-2">
-                                        <span className={s.mono ? 'font-mono text-2xl' : ''}>{s.value}</span>
-                                        {s.suffix ? <span className="text-xs uppercase tracking-[0.18em] text-muted font-sans">{s.suffix}</span> : null}
+                                    <div className={`mt-3 ${s.mono ? 'flex flex-col gap-1' : 'inline-flex items-baseline gap-2'}`}>
+                                        <span
+                                            className={s.mono
+                                                ? 'font-mono text-fg text-base sm:text-lg break-all leading-tight'
+                                                : 'font-serif text-fg text-3xl tabular-nums'}
+                                        >
+                                            {s.value}
+                                        </span>
+                                        {s.suffix ? <span className="text-[10px] uppercase tracking-[0.18em] text-muted font-sans">{s.suffix}</span> : null}
                                     </div>
                                 </Card>
                             </Reveal>

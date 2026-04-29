@@ -220,9 +220,9 @@ class ClientEventShow extends Component {
                         <Reveal delay={0.15}>
                             <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-fg/80">
                                 <span className="inline-flex items-center gap-1.5"><Calendar size={14} className="text-muted" />{eventDate || 'Not set'}</span>
-                                <span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-muted">
-                                    <MapPin size={13} className="text-muted shrink-0" />
-                                    {this.props.contractAddress}
+                                <span className="inline-flex items-start gap-1.5 max-w-full font-mono text-[12px] text-muted">
+                                    <MapPin size={13} className="text-muted shrink-0 mt-0.5" />
+                                    <span className="break-all">{this.props.contractAddress}</span>
                                 </span>
                             </div>
                         </Reveal>
@@ -247,11 +247,11 @@ class ClientEventShow extends Component {
                                         </div>
                                         <div className="text-xs text-muted mt-2">{sold} of {supply} sold</div>
                                     </Card>
-                                    <Card className="p-5">
+                                    <Card className="p-5 min-w-0 overflow-hidden">
                                         <span className="text-[10px] tracking-[0.18em] uppercase text-muted font-medium">Ticket price</span>
-                                        <div className="font-serif text-3xl text-fg mt-2 inline-flex items-baseline gap-2">
-                                            <span className="font-mono text-2xl">{ticketPrice}</span>
-                                            <span className="text-xs uppercase tracking-[0.18em] text-muted font-sans">wei</span>
+                                        <div className="mt-2 flex flex-col gap-1">
+                                            <span className="font-mono text-fg text-lg break-all leading-tight">{ticketPrice}</span>
+                                            <span className="text-[10px] uppercase tracking-[0.18em] text-muted font-sans">wei</span>
                                         </div>
                                         <div className="text-xs text-muted mt-3">Payment settles on-chain at confirmation.</div>
                                     </Card>
@@ -309,14 +309,18 @@ class ClientEventShow extends Component {
                                         Add to cart
                                     </Button>
 
-                                    <div className="mt-5 rounded-md bg-surface-2/50 border border-border p-4">
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted">In cart</span>
-                                            <span className="font-mono text-fg">{this.state.cartQuantity} × {ticketPrice} wei</span>
+                                    <div className="mt-5 rounded-md bg-surface-2/50 border border-border p-4 space-y-2.5 text-sm">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <span className="text-muted shrink-0">In cart</span>
+                                            <span className="font-mono text-fg text-right break-all min-w-0">
+                                                {this.state.cartQuantity} × {ticketPrice} <span className="text-muted">wei</span>
+                                            </span>
                                         </div>
-                                        <div className="flex items-center justify-between text-sm mt-2">
-                                            <span className="text-muted">Estimated total</span>
-                                            <span className="font-mono text-fg">{(BigInt(ticketPrice || '0') * BigInt(this.state.cartQuantity || 0)).toString()} wei</span>
+                                        <div className="flex items-start justify-between gap-3">
+                                            <span className="text-muted shrink-0">Estimated total</span>
+                                            <span className="font-mono text-fg text-right break-all min-w-0">
+                                                {(BigInt(ticketPrice || '0') * BigInt(this.state.cartQuantity || 0)).toString()} <span className="text-muted">wei</span>
+                                            </span>
                                         </div>
                                     </div>
 
