@@ -85,7 +85,7 @@ class ClientTicketsPage extends Component {
                 <p><strong>Date:</strong> {ticket.eventDate || 'Not set'}</p>
                 <p><strong>Contract:</strong> {ticket.eventAddress}</p>
                 <p><strong>Ticket ID:</strong> {ticket.ticketId}</p>
-                <p><strong>Ticket Price:</strong> {ticket.ticketPrice ? `${ticket.ticketPrice} wei` : 'Unavailable'}</p>
+                <p><strong>Ticket Price:</strong> {ticket.ticketPrice ? `$${ticket.ticketPrice}` : 'Unavailable'}</p>
                 <Divider />
                 <Header as="h4">Validation Data</Header>
                 <p><strong>QR Event Address:</strong> {parsedPayload?.eventAddress || 'Unavailable'}</p>

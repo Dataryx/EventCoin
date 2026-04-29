@@ -31,7 +31,7 @@ class EventNew extends Component {
                 throw new Error('Event name is required.');
             }
             if (!Number.isFinite(ticketPrice) || ticketPrice <= 0) {
-                throw new Error('Ticket price must be a positive number in wei.');
+                throw new Error('Ticket price must be a positive dollar amount.');
             }
             if (!Number.isInteger(ticketSupply) || ticketSupply <= 0) {
                 throw new Error('Ticket supply must be a positive integer.');
@@ -150,7 +150,7 @@ class EventNew extends Component {
                     <Form.Field>
                         <label>Ticket Price</label>
                         <Input 
-                            label="wei" 
+                            label="$" 
                             labelPosition="right"
                             value={this.state.ticketPrice}
                             onChange={event => this.setState({ ticketPrice: event.target.value})}

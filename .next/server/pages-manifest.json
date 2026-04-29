@@ -4,5 +4,6 @@
   "/_document": "pages/_document.js",
   "/client/login": "pages/client/login.js",
   "/events/show": "pages/events/show.js",
-  "/admin/dashboard": "pages/admin/dashboard.js"
+  "/admin/login": "pages/admin/login.js",
+  "/": "pages/index.js"
 }

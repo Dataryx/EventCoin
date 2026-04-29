@@ -146,7 +146,7 @@ class ClientEventShow extends Component {
             },
             {
                 header: ticketPrice,
-                meta: 'in wei',
+                meta: '$',
                 description: 'Price of one ticket'
             },
             {
@@ -245,7 +245,7 @@ class ClientEventShow extends Component {
                                 <List.Item icon="check circle" content="Admin-side QR validation supported" />
                             </List>
                             <Divider />
-                            <p>Ticket price: <strong>{this.props.ticketPrice}</strong> wei</p>
+                            <p>Ticket price: <strong>${this.props.ticketPrice}</strong></p>
                             <p>Event: <strong>{this.props.name}</strong></p>
                             <p>Tickets available: <strong>{parseInt(this.props.ticketSupply, 10) - parseInt(this.props.ticketsSold, 10)}</strong></p>
                             <Input

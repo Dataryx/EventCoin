@@ -181,7 +181,7 @@ class EventShow extends Component {
                                 </div>
                                 <div className="side-row">
                                     <span>Price</span>
-                                    <strong>{ticketPrice} wei</strong>
+                                    <strong>${ticketPrice}</strong>
                                 </div>
                             </div>
                         </div>
