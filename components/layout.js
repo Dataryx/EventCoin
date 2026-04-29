@@ -1,30 +1,20 @@
 import React from 'react';
-import { Container } from 'semantic-ui-react';
 import Head from 'next/head';
 import Header from './header';
 
-const Layout = (props) => {
+const Layout = ({ children, wallet, nav, hideHeader = false, title }) => {
     return (
-        <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #f7f8fc 0%, #eef2ff 100%)', paddingBottom: '40px' }}>
+        <div className="min-h-screen bg-bg text-fg flex flex-col">
             <Head>
-                <link
-                    async
-                    rel="stylesheet"
-                    href="https://cdn.jsdelivr.net/npm/semantic-ui@2/dist/semantic.min.css"
-                />
-                <link rel="preconnect" href="https://fonts.googleapis.com" />
-                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
-                <link
-                    href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=DM+Sans:wght@400;500;700&family=Nunito+Sans:wght@400;600;700;800&family=Syne:wght@500;700;800&display=swap"
-                    rel="stylesheet"
-                />
+                <title>{title ? `${title} · EventCoin` : 'EventCoin'}</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+                <meta name="theme-color" content="#FAFAF7" media="(prefers-color-scheme: light)" />
+                <meta name="theme-color" content="#0B0B0A" media="(prefers-color-scheme: dark)" />
             </Head>
-            <Container style={{ paddingTop: '14px', fontFamily: '"DM Sans", sans-serif' }}>
-                <Header />
-                <div style={{ marginTop: '16px' }}>
-                    {props.children}
-                </div>
-            </Container>
+            {!hideHeader ? <Header wallet={wallet} nav={nav} /> : null}
+            <main className="flex-1">
+                {children}
+            </main>
         </div>
     );
 };

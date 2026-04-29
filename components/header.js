@@ -1,27 +1,48 @@
-import React from 'react';
-import { Menu, Icon, Label } from 'semantic-ui-react';
+import React, { useEffect, useState } from 'react';
 import { Link } from '../routes';
+import { Ticket } from 'lucide-react';
+import { ThemeToggle, Container, WalletPill } from './ui';
+import { motion } from 'framer-motion';
 
-const Header = () => {
+const Header = ({ wallet, nav }) => {
+    const [scrolled, setScrolled] = useState(false);
+    useEffect(() => {
+        const onScroll = () => setScrolled(window.scrollY > 8);
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
     return (
-        <Menu
-            stackable
-            style={{
-                marginTop: '0px',
-                borderRadius: '14px',
-                padding: '8px 10px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)'
-            }}
+        <motion.header
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className={`sticky top-0 z-40 w-full transition-colors duration-300 ${
+                scrolled
+                    ? 'bg-bg/85 backdrop-blur-md border-b border-border'
+                    : 'bg-bg/0 border-b border-transparent'
+            }`}
         >
-            <Link legacyBehavior route="/">
-                <a className="item">
-                    <Icon name="ticket" color="violet" />
-                    EventCoin
-                    <Label color="black" size="mini" style={{ marginLeft: '8px' }}>E-Commerce</Label>
-                </a>
-            </Link>
-        </Menu>
+            <Container className="flex h-16 items-center justify-between">
+                <Link route="/" legacyBehavior>
+                    <a className="group inline-flex items-center gap-2.5 focus-ring rounded-sm">
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent text-accent-fg transition-transform duration-300 ease-premium group-hover:rotate-[-8deg]">
+                            <Ticket size={15} strokeWidth={2} />
+                        </span>
+                        <span className="font-serif text-xl tracking-tight leading-none">
+                            EventCoin
+                        </span>
+                    </a>
+                </Link>
+
+                <nav className="flex items-center gap-1.5">
+                    {nav}
+                    {wallet ? <WalletPill address={wallet} /> : null}
+                    <ThemeToggle />
+                </nav>
+            </Container>
+        </motion.header>
     );
 };
 
