@@ -1,8 +1,12 @@
 import React, { Component } from 'react';
-import { Form, Button, Message, Segment, Icon, Divider } from 'semantic-ui-react';
+import { ChevronLeft, AlertCircle, Check, QrCode, Hash, Upload, ShieldCheck } from 'lucide-react';
 import Layout from '../../../components/layout';
 import Event from '../../../ethereum/event';
 import web3 from '../../../ethereum/web3';
+import { Link } from '../../../routes';
+import {
+    Container, Section, Reveal, Card, Button, Input, Textarea, Field, Badge, Divider
+} from '../../../components/ui';
 
 class ValidateTicket extends Component {
     static async getInitialProps(props) {
@@ -98,13 +102,11 @@ class ValidateTicket extends Component {
             if (!payload.ticketId || !payload.buyerAddress || !payload.eventAddress) {
                 throw new Error('QR payload is incomplete.');
             }
-
             const successMessage = await this.validateWithContract(payload);
             this.setState({ successMessage });
         } catch (err) {
             this.setState({ errorMessage: err.message });
         }
-
         this.setState({ loading: false });
     };
 
@@ -142,70 +144,119 @@ class ValidateTicket extends Component {
 
     render() {
         return (
-            <Layout>
-                <h3>Admin Ticket QR Validation</h3>
-                <p><strong>Event:</strong> {this.props.eventName || 'Unnamed Event'}</p>
-                <p><strong>Contract:</strong> {this.props.contractAddress}</p>
-                <p>This page validates tickets for this event only.</p>
+            <Layout title="Validate ticket">
+                <Section className="pt-10 pb-6">
+                    <Container className="max-w-3xl">
+                        <Reveal>
+                            <Link route={`/events/${this.props.contractAddress}`} legacyBehavior>
+                                <a className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-fg transition-colors group">
+                                    <ChevronLeft size={14} strokeWidth={1.75} className="transition-transform group-hover:-translate-x-0.5" />
+                                    Back to event
+                                </a>
+                            </Link>
+                        </Reveal>
+                        <Reveal delay={0.05}>
+                            <Badge tone="accent" className="mt-5"><ShieldCheck size={11} /> Admin only</Badge>
+                        </Reveal>
+                        <Reveal delay={0.08}>
+                            <h1 className="font-serif text-display-md text-fg mt-3 tracking-tight">
+                                Validate ticket
+                            </h1>
+                        </Reveal>
+                        <Reveal delay={0.12}>
+                            <p className="mt-3 text-[15px] text-muted">
+                                <span className="text-fg/80">{this.props.eventName || 'Unnamed Event'}</span> · <span className="font-mono text-xs">{this.props.contractAddress}</span>
+                            </p>
+                        </Reveal>
+                    </Container>
+                </Section>
 
-                <Segment>
-                    <h4>Validate by Ticket ID</h4>
-                    <Form onSubmit={this.onValidateByTicketId} error={!!this.state.errorMessage}>
-                        <Form.Input
-                            label="Ticket ID"
-                            value={this.state.ticketId}
-                            onChange={(event) => this.setState({ ticketId: event.target.value })}
-                            placeholder="Enter ticket id"
-                        />
-                        <Button primary loading={this.state.loading}>
-                            Validate Ticket ID
-                        </Button>
-                    </Form>
-                </Segment>
+                <Section className="pt-2 pb-20">
+                    <Container className="max-w-3xl">
+                        <div className="grid gap-4">
+                            <Reveal>
+                                <Card className="p-6">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <Hash size={14} className="text-accent" />
+                                        <h2 className="font-medium text-fg">Validate by Ticket ID</h2>
+                                    </div>
+                                    <form onSubmit={this.onValidateByTicketId} className="flex flex-col sm:flex-row gap-3">
+                                        <Input
+                                            className="font-mono flex-1"
+                                            value={this.state.ticketId}
+                                            onChange={(e) => this.setState({ ticketId: e.target.value })}
+                                            placeholder="Enter ticket id"
+                                        />
+                                        <Button as="button" type="submit" loading={this.state.loading}>
+                                            Validate
+                                        </Button>
+                                    </form>
+                                </Card>
+                            </Reveal>
 
-                <Divider horizontal>OR</Divider>
+                            <Reveal delay={0.05}>
+                                <Card className="p-6">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <Upload size={14} className="text-accent" />
+                                        <h2 className="font-medium text-fg">Upload QR image</h2>
+                                    </div>
+                                    <Field hint="Uses the browser's BarcodeDetector when available.">
+                                        <Input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={this.onUploadQrImage}
+                                            className="cursor-pointer file:mr-3 file:py-1.5 file:px-3 file:rounded-sm file:border-0 file:bg-accent file:text-accent-fg file:text-xs file:font-medium hover:file:bg-accent-hover"
+                                        />
+                                    </Field>
+                                    {this.state.decodedQrText ? (
+                                        <p className="mt-3 text-xs font-mono text-muted break-all">
+                                            <span className="text-fg/80">Decoded:</span> {this.state.decodedQrText}
+                                        </p>
+                                    ) : null}
+                                </Card>
+                            </Reveal>
 
-                <Segment>
-                    <h4>Validate by QR Image Upload</h4>
-                    <Form error={!!this.state.errorMessage}>
-                        <Form.Input
-                            type="file"
-                            accept="image/*"
-                            onChange={this.onUploadQrImage}
-                            label="Upload QR image"
-                        />
-                    </Form>
-                    {this.state.decodedQrText ? (
-                        <p style={{ marginTop: '8px', wordBreak: 'break-word' }}>
-                            Decoded QR payload: {this.state.decodedQrText}
-                        </p>
-                    ) : null}
-                </Segment>
+                            <Reveal delay={0.1}>
+                                <Card className="p-6">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <QrCode size={14} className="text-accent" />
+                                        <h2 className="font-medium text-fg">Paste QR payload</h2>
+                                    </div>
+                                    <form onSubmit={this.onValidateByQrPayload} className="flex flex-col gap-3">
+                                        <Textarea
+                                            rows={6}
+                                            value={this.state.qrPayload}
+                                            onChange={(e) => this.setState({ qrPayload: e.target.value })}
+                                            placeholder="Paste QR JSON payload here"
+                                            className="font-mono text-xs"
+                                        />
+                                        <Button as="button" type="submit" loading={this.state.loading} className="self-start">
+                                            Validate payload
+                                        </Button>
+                                    </form>
+                                </Card>
+                            </Reveal>
 
-                <Divider horizontal>OR</Divider>
+                            {this.state.errorMessage ? (
+                                <Card className="p-4 border-danger/30 bg-danger/5">
+                                    <div className="flex items-start gap-2">
+                                        <AlertCircle size={15} className="text-danger mt-0.5" strokeWidth={1.75} />
+                                        <p className="text-sm text-fg"><span className="font-medium">Validation failed. </span>{this.state.errorMessage}</p>
+                                    </div>
+                                </Card>
+                            ) : null}
 
-                <Segment>
-                    <h4>Validate by QR Payload Text</h4>
-                    <Form onSubmit={this.onValidateByQrPayload} error={!!this.state.errorMessage}>
-                    <Form.TextArea
-                        rows={8}
-                        value={this.state.qrPayload}
-                        onChange={(event) => this.setState({ qrPayload: event.target.value })}
-                        placeholder="Paste QR JSON payload here"
-                    />
-                    <Button primary loading={this.state.loading}>
-                        Validate QR Payload
-                    </Button>
-                    <Message error header="Validation failed" content={this.state.errorMessage} />
-                </Form>
-                </Segment>
-
-                {this.state.successMessage && (
-                    <Segment color="green" style={{ marginTop: '12px' }}>
-                        <Icon color="green" name="check circle" />
-                        {this.state.successMessage}
-                    </Segment>
-                )}
+                            {this.state.successMessage ? (
+                                <Card className="p-4 border-accent/30 bg-accent/5">
+                                    <div className="flex items-start gap-2">
+                                        <Check size={15} className="text-accent mt-0.5" strokeWidth={1.75} />
+                                        <p className="text-sm text-fg">{this.state.successMessage}</p>
+                                    </div>
+                                </Card>
+                            ) : null}
+                        </div>
+                    </Container>
+                </Section>
             </Layout>
         );
     }

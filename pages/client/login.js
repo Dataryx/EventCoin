@@ -1,15 +1,14 @@
 import React, { Component } from 'react';
-import { Button, Form, Message, Segment, Header, Icon, Grid } from 'semantic-ui-react';
+import { ShoppingBag, AlertCircle } from 'lucide-react';
 import Layout from '../../components/layout';
 import web3 from '../../ethereum/web3';
 import { Router } from '../../routes';
+import {
+    Container, Section, Reveal, Card, Button, Badge
+} from '../../components/ui';
 
 class ClientLogin extends Component {
-    state = {
-        loading: false,
-        errorMessage: '',
-        account: '',
-    };
+    state = { loading: false, errorMessage: '', account: '' };
 
     onSubmit = async (event) => {
         event.preventDefault();
@@ -40,27 +39,48 @@ class ClientLogin extends Component {
 
     render() {
         return (
-            <Layout>
-                <Grid centered>
-                    <Grid.Column mobile={16} tablet={12} computer={8}>
-                        <Segment
-                            padded="very"
-                            style={{ borderRadius: '16px', border: '1px solid #ccfbf1' }}
-                        >
-                            <Header as="h2">
-                                <Icon name="shopping cart" color="teal" />
-                                <Header.Content>Customer Portal Login</Header.Content>
-                            </Header>
-                            <p>Connect your wallet to browse events, checkout tickets, and manage your QR passes.</p>
-                            <Form onSubmit={this.onSubmit} error={!!this.state.errorMessage}>
-                                <Button color="teal" fluid size="large" loading={this.state.loading}>
-                                    Enter Customer Storefront
-                                </Button>
-                                <Message error header="Login failed" content={this.state.errorMessage} />
-                            </Form>
-                        </Segment>
-                    </Grid.Column>
-                </Grid>
+            <Layout title="Client login">
+                <Section className="pt-16 pb-20">
+                    <Container className="max-w-md">
+                        <Reveal>
+                            <Badge tone="accent"><ShoppingBag size={11} /> Storefront</Badge>
+                        </Reveal>
+                        <Reveal delay={0.05}>
+                            <h1 className="font-serif text-display-md text-fg mt-4 text-balance">
+                                Browse and book.
+                            </h1>
+                        </Reveal>
+                        <Reveal delay={0.1}>
+                            <p className="mt-3 text-[15px] text-muted">
+                                Connect your wallet to discover events, secure tickets, and carry your QR pass on-chain.
+                            </p>
+                        </Reveal>
+                        <Reveal delay={0.15}>
+                            <Card className="mt-8 p-6">
+                                <form onSubmit={this.onSubmit}>
+                                    <Button
+                                        as="button"
+                                        type="submit"
+                                        size="lg"
+                                        loading={this.state.loading}
+                                        className="w-full"
+                                    >
+                                        Connect wallet
+                                    </Button>
+                                    {this.state.errorMessage ? (
+                                        <div className="mt-4 flex items-start gap-2 text-sm text-danger">
+                                            <AlertCircle size={14} className="mt-0.5" strokeWidth={1.75} />
+                                            <span>{this.state.errorMessage}</span>
+                                        </div>
+                                    ) : null}
+                                </form>
+                                <p className="mt-5 text-xs text-muted">
+                                    Requires MetaMask · Your wallet stays in your browser.
+                                </p>
+                            </Card>
+                        </Reveal>
+                    </Container>
+                </Section>
             </Layout>
         );
     }

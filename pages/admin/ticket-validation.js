@@ -1,8 +1,11 @@
 import React, { Component } from 'react';
-import { Button, Message } from 'semantic-ui-react';
+import { ShieldCheck, ArrowRight, AlertCircle } from 'lucide-react';
 import { contractAddress, getDeployedEventsInstance } from '../../ethereum/factory';
 import AdminShell from '../../components/adminShell';
 import { Link } from '../../routes';
+import {
+    Card, Button, Reveal, EmptyState
+} from '../../components/ui';
 
 class TicketValidationPage extends Component {
     static async getInitialProps() {
@@ -27,44 +30,53 @@ class TicketValidationPage extends Component {
         return (
             <AdminShell
                 activeRoute="/admin/ticket-validation"
-                title="Ticket Validation Center"
-                subtitle="Validation is always event-specific. Choose one event below."
+                title="Ticket validation"
+                subtitle="Validation is event-specific. Choose one event to begin."
                 walletAddress={this.state.adminAccount}
-                heroTitle="Validation Queue"
+                heroTitle="Validation queue"
                 heroDescription="Each link opens a dedicated validation page scoped to one event contract."
             >
-                <div className="panel">
-                    <h3>Event Validation Links</h3>
-                    <ul className="validation-list">
-                        {this.props.events.map((address) => (
-                            <li key={address}>
-                                <span className="mono">{address}</span>
-                                <Link route={`/events/${address}/validate`} legacyBehavior>
-                                    <a><Button size="tiny" primary>Validate QR</Button></a>
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-                {this.props.loadError ? <Message error content={this.props.loadError} style={{ marginTop: '14px' }} /> : null}
-                <style jsx>{`
-                    .panel {
-                        background: white;
-                        border-radius: 12px;
-                        padding: 16px;
-                        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
-                    }
-                    .validation-list { list-style: none; padding: 0; margin: 0; }
-                    .validation-list li {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        border-bottom: 1px solid #e2e8f0;
-                        padding: 10px 0;
-                        gap: 8px;
-                    }
-                    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; word-break: break-word; }
-                `}</style>
+                <Reveal>
+                    <Card className="p-5 sm:p-6">
+                        <h3 className="font-serif text-xl text-fg mb-5">Event validation links</h3>
+                        {this.props.events.length === 0 ? (
+                            <EmptyState
+                                icon={ShieldCheck}
+                                title="No events to validate"
+                                description="Create an event first to enable validation."
+                            />
+                        ) : (
+                            <ul className="divide-y divide-border -mx-1">
+                                {this.props.events.map((address, i) => (
+                                    <Reveal key={address} delay={Math.min(i * 0.03, 0.15)}>
+                                        <li className="flex items-center justify-between gap-3 py-3 px-1">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 text-accent">
+                                                    <ShieldCheck size={14} strokeWidth={1.75} />
+                                                </span>
+                                                <span className="font-mono text-[12px] text-fg truncate">{address}</span>
+                                            </div>
+                                            <Link route={`/events/${address}/validate`} legacyBehavior>
+                                                <a>
+                                                    <Button size="sm" rightIcon={<ArrowRight size={13} strokeWidth={2} />}>Validate</Button>
+                                                </a>
+                                            </Link>
+                                        </li>
+                                    </Reveal>
+                                ))}
+                            </ul>
+                        )}
+                    </Card>
+                </Reveal>
+
+                {this.props.loadError ? (
+                    <Card className="mt-6 p-4 border-danger/30 bg-danger/5">
+                        <div className="flex items-start gap-2">
+                            <AlertCircle size={15} className="text-danger mt-0.5" strokeWidth={1.75} />
+                            <p className="text-sm text-fg">{this.props.loadError}</p>
+                        </div>
+                    </Card>
+                ) : null}
             </AdminShell>
         );
     }

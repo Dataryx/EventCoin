@@ -1,9 +1,12 @@
-import React, { Component } from 'react' ;
-import {Form,Button,Input,Message} from 'semantic-ui-react';
+import React, { Component } from 'react';
+import { ChevronLeft, Calendar, AlertCircle, Plus } from 'lucide-react';
 import Layout from '../../components/layout';
 import { contractAddress, createEventInstance } from '../../ethereum/factory';
 import web3 from '../../ethereum/web3';
-import { Router } from '../../routes';
+import { Link, Router } from '../../routes';
+import {
+    Container, Section, Reveal, Card, Button, Input, Field, Textarea
+} from '../../components/ui';
 
 class EventNew extends Component {
     state = {
@@ -16,9 +19,9 @@ class EventNew extends Component {
         loading: false
     };
 
-    onSubmit = async (event) =>  {
+    onSubmit = async (event) => {
         event.preventDefault();
-        this.setState({loading:true,errorMessage:''});
+        this.setState({ loading: true, errorMessage: '' });
         try {
             if (!contractAddress || !createEventInstance) {
                 throw new Error('Set NEXT_PUBLIC_DIAMOND_ADDRESS in .env before creating events.');
@@ -36,7 +39,6 @@ class EventNew extends Component {
             if (!Number.isInteger(ticketSupply) || ticketSupply <= 0) {
                 throw new Error('Ticket supply must be a positive integer.');
             }
-            // Event constructor initializes each ticket in a loop; very large supply can exceed gas.
             if (ticketSupply > 1000) {
                 throw new Error('Ticket supply is too large for one transaction. Use 1000 or less.');
             }
@@ -65,19 +67,18 @@ class EventNew extends Component {
                 contractAddress
             );
 
-            // Determine which signature is actually available on the deployed contract by estimating gas first.
             let methodToSend = null;
             let estimatedGas = null;
 
             try {
                 const modernMethod = createEventInstance.methods
-                .createEvent(
-                    this.state.eventName,
-                    this.state.eventDescription,
-                    this.state.eventDate,
-                    ticketPrice.toString(),
-                    ticketSupply.toString()
-                );
+                    .createEvent(
+                        this.state.eventName,
+                        this.state.eventDescription,
+                        this.state.eventDate,
+                        ticketPrice.toString(),
+                        ticketSupply.toString()
+                    );
                 estimatedGas = await modernMethod.estimateGas({ from: accounts[0] });
                 methodToSend = modernMethod;
             } catch (modernEstimateError) {
@@ -116,59 +117,113 @@ class EventNew extends Component {
             }
             this.setState({ errorMessage: friendlyError });
         }
-        this.setState({loading:false});
+        this.setState({ loading: false });
     };
+
+    set = (key) => (e) => this.setState({ [key]: e.target.value });
 
     render() {
         return (
-            <Layout>
-                <h3>Create an Event</h3>
+            <Layout title="Create event">
+                <Section className="pt-10 pb-20">
+                    <Container className="max-w-2xl">
+                        <Reveal>
+                            <Link route="/admin/dashboard" legacyBehavior>
+                                <a className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-fg transition-colors group">
+                                    <ChevronLeft size={14} strokeWidth={1.75} className="transition-transform group-hover:-translate-x-0.5" />
+                                    Back to dashboard
+                                </a>
+                            </Link>
+                        </Reveal>
+                        <Reveal delay={0.05}>
+                            <h1 className="font-serif text-display-md text-fg mt-5 tracking-tight">
+                                Create an event
+                            </h1>
+                        </Reveal>
+                        <Reveal delay={0.1}>
+                            <p className="mt-3 text-[15px] text-muted">
+                                Mints a new event contract. Tickets become available immediately after the transaction confirms.
+                            </p>
+                        </Reveal>
 
-                <Form onSubmit={this.onSubmit} error={!!this.state.errorMessage}>
-                    <Form.Field>
-                        <label>Event Name</label>
-                        <Input
-                            value={this.state.eventName}
-                            onChange={event => this.setState({ eventName: event.target.value})}
-                        />
-                    </Form.Field>
-                    <Form.Field>
-                        <label>Description</label>
-                        <Input
-                            value={this.state.eventDescription}
-                            onChange={event => this.setState({ eventDescription: event.target.value})}
-                        />
-                    </Form.Field>
-                    <Form.Field>
-                        <label>Event Date</label>
-                        <Input
-                            type="date"
-                            value={this.state.eventDate}
-                            onChange={event => this.setState({ eventDate: event.target.value})}
-                        />
-                    </Form.Field>
-                    <Form.Field>
-                        <label>Ticket Price</label>
-                        <Input 
-                            label="wei" 
-                            labelPosition="right"
-                            value={this.state.ticketPrice}
-                            onChange={event => this.setState({ ticketPrice: event.target.value})}
-                        />
-                    </Form.Field>
-                    <Form.Field>
-                        <label>Ticket Supply</label>
-                        <Input
-                            value={this.state.ticketSupply}
-                            onChange={event => this.setState({ ticketSupply: event.target.value})}
-                        />
-                    </Form.Field>
-                    <Message error header="Oops!" content={this.state.errorMessage} />
-                    <Button loading={this.state.loading} primary>Create!</Button>
-                </Form>
+                        <Reveal delay={0.15}>
+                            <Card className="mt-8 p-6 sm:p-8">
+                                <form onSubmit={this.onSubmit} className="flex flex-col gap-5">
+                                    <Field label="Event name">
+                                        <Input
+                                            value={this.state.eventName}
+                                            onChange={this.set('eventName')}
+                                            placeholder="e.g. Midnight Garden, Vol. III"
+                                            required
+                                        />
+                                    </Field>
+
+                                    <Field label="Description" hint="Shown to attendees on the storefront">
+                                        <Textarea
+                                            value={this.state.eventDescription}
+                                            onChange={this.set('eventDescription')}
+                                            placeholder="Set the tone, name the venue, drop the dress code…"
+                                            rows={4}
+                                        />
+                                    </Field>
+
+                                    <div className="grid sm:grid-cols-2 gap-5">
+                                        <Field label="Date">
+                                            <div className="relative">
+                                                <Input
+                                                    type="date"
+                                                    value={this.state.eventDate}
+                                                    onChange={this.set('eventDate')}
+                                                />
+                                                <Calendar size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+                                            </div>
+                                        </Field>
+                                        <Field label="Ticket price (wei)">
+                                            <Input
+                                                value={this.state.ticketPrice}
+                                                onChange={this.set('ticketPrice')}
+                                                placeholder="100000000000000000"
+                                                inputMode="numeric"
+                                                className="font-mono"
+                                            />
+                                        </Field>
+                                    </div>
+
+                                    <Field label="Ticket supply" hint="Cap at 1,000 to stay within block gas limits">
+                                        <Input
+                                            value={this.state.ticketSupply}
+                                            onChange={this.set('ticketSupply')}
+                                            placeholder="200"
+                                            inputMode="numeric"
+                                            className="font-mono"
+                                        />
+                                    </Field>
+
+                                    {this.state.errorMessage ? (
+                                        <div className="rounded-md border border-danger/30 bg-danger/5 p-3 flex items-start gap-2">
+                                            <AlertCircle size={14} className="text-danger mt-0.5 shrink-0" strokeWidth={1.75} />
+                                            <p className="text-sm text-fg">{this.state.errorMessage}</p>
+                                        </div>
+                                    ) : null}
+
+                                    <Button
+                                        as="button"
+                                        type="submit"
+                                        size="lg"
+                                        loading={this.state.loading}
+                                        leftIcon={<Plus size={15} strokeWidth={2} />}
+                                        className="self-start"
+                                    >
+                                        Create event
+                                    </Button>
+                                </form>
+                            </Card>
+                        </Reveal>
+                    </Container>
+                </Section>
             </Layout>
         );
     }
 }
 
-export default EventNew
+export default EventNew;

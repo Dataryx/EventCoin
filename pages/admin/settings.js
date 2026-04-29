@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
-import { Form, Button } from 'semantic-ui-react';
+import { Save } from 'lucide-react';
 import AdminShell from '../../components/adminShell';
+import { Card, Button, Input, Field, Reveal } from '../../components/ui';
 
 class SettingsPage extends Component {
     state = {
@@ -14,39 +15,44 @@ class SettingsPage extends Component {
         this.setState({ adminAccount: window.localStorage.getItem('adminAccount') || '' });
     }
 
+    set = (k) => (e) => this.setState({ [k]: e.target.value });
+
     render() {
         return (
             <AdminShell
                 activeRoute="/admin/settings"
-                title="Platform Settings"
+                title="Settings"
                 subtitle="Configure global admin-level defaults."
                 walletAddress={this.state.adminAccount}
-                heroTitle="System Configuration"
+                heroTitle="System configuration"
                 heroDescription="Apply platform identity and fee preferences."
             >
-                <div className="panel">
-                    <Form>
-                        <Form.Input
-                            label="Platform Name"
-                            value={this.state.companyName}
-                            onChange={(event) => this.setState({ companyName: event.target.value })}
-                        />
-                        <Form.Input
-                            label="Support Email"
-                            value={this.state.supportEmail}
-                            onChange={(event) => this.setState({ supportEmail: event.target.value })}
-                        />
-                        <Form.Input
-                            label="Default Platform Fee (%)"
-                            value={this.state.defaultFee}
-                            onChange={(event) => this.setState({ defaultFee: event.target.value })}
-                        />
-                        <Button primary>Save Settings</Button>
-                    </Form>
-                </div>
-                <style jsx>{`
-                    .panel { background:white;border-radius:12px;padding:14px;box-shadow:0 8px 20px rgba(15,23,42,.06); }
-                `}</style>
+                <Reveal>
+                    <Card className="p-6 sm:p-8 max-w-2xl">
+                        <form
+                            onSubmit={(e) => { e.preventDefault(); }}
+                            className="flex flex-col gap-5"
+                        >
+                            <Field label="Platform name">
+                                <Input value={this.state.companyName} onChange={this.set('companyName')} />
+                            </Field>
+                            <Field label="Support email">
+                                <Input type="email" value={this.state.supportEmail} onChange={this.set('supportEmail')} />
+                            </Field>
+                            <Field label="Default platform fee" hint="Percentage applied to gross ticket revenue.">
+                                <Input value={this.state.defaultFee} onChange={this.set('defaultFee')} className="font-mono" />
+                            </Field>
+                            <Button
+                                as="button"
+                                type="submit"
+                                leftIcon={<Save size={14} strokeWidth={1.75} />}
+                                className="self-start"
+                            >
+                                Save settings
+                            </Button>
+                        </form>
+                    </Card>
+                </Reveal>
             </AdminShell>
         );
     }

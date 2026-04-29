@@ -1,34 +1,99 @@
-import React from 'react';
-import { Button, Icon } from 'semantic-ui-react';
+import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import {
+    LayoutDashboard, Calendar, ShieldCheck, Wallet, ArrowDownToLine, FileText,
+    Plug, FileClock, Settings as SettingsIcon, Ticket, Menu, X
+} from 'lucide-react';
 import { Link } from '../routes';
 import Layout from './layout';
+import {
+    Container, ThemeToggle, WalletPill, Button, Reveal
+} from './ui';
+import { cn } from '../lib/cn';
 
 const navSections = [
     {
         title: 'Main',
         items: [
-            { label: 'Dashboard', route: '/admin/dashboard' },
-            { label: 'Events', route: '/admin/events' },
-            { label: 'Ticket Validation', route: '/admin/ticket-validation' }
+            { label: 'Dashboard', route: '/admin/dashboard', icon: LayoutDashboard },
+            { label: 'Events', route: '/admin/events', icon: Calendar },
+            { label: 'Ticket validation', route: '/admin/ticket-validation', icon: ShieldCheck }
         ]
     },
     {
         title: 'Finance',
         items: [
-            { label: 'Revenue', route: '/admin/revenue' },
-            { label: 'Payouts', route: '/admin/payouts' },
-            { label: 'Invoices', route: '/admin/invoices' }
+            { label: 'Revenue', route: '/admin/revenue', icon: Wallet },
+            { label: 'Payouts', route: '/admin/payouts', icon: ArrowDownToLine },
+            { label: 'Invoices', route: '/admin/invoices', icon: FileText }
         ]
     },
     {
         title: 'System',
         items: [
-            { label: 'Integrations', route: '/admin/integrations' },
-            { label: 'Audit Logs', route: '/admin/audit-logs' },
-            { label: 'Settings', route: '/admin/settings' }
+            { label: 'Integrations', route: '/admin/integrations', icon: Plug },
+            { label: 'Audit logs', route: '/admin/audit-logs', icon: FileClock },
+            { label: 'Settings', route: '/admin/settings', icon: SettingsIcon }
         ]
     }
 ];
+
+const Sidebar = ({ activeRoute, walletAddress, onClose }) => (
+    <div className="flex flex-col h-full bg-surface border border-border rounded-lg">
+        <div className="p-5 flex items-center justify-between border-b border-border">
+            <Link route="/admin/dashboard" legacyBehavior>
+                <a className="inline-flex items-center gap-2.5 group focus-ring rounded-sm">
+                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent text-accent-fg transition-transform duration-300 ease-premium group-hover:rotate-[-8deg]">
+                        <Ticket size={14} strokeWidth={2} />
+                    </span>
+                    <div>
+                        <div className="font-serif text-lg leading-none">EventCoin</div>
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-muted mt-0.5">Admin</div>
+                    </div>
+                </a>
+            </Link>
+            {onClose ? (
+                <button onClick={onClose} className="lg:hidden inline-flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-surface-2">
+                    <X size={15} />
+                </button>
+            ) : null}
+        </div>
+        <div className="flex-1 overflow-y-auto p-3">
+            {navSections.map((section) => (
+                <div key={section.title} className="mb-5">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-muted font-medium px-3 py-2">
+                        {section.title}
+                    </p>
+                    {section.items.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = activeRoute === item.route;
+                        return (
+                            <Link key={item.route} route={item.route} legacyBehavior>
+                                <a
+                                    onClick={onClose}
+                                    className={cn(
+                                        'flex items-center gap-2.5 px-3 py-2 rounded-sm text-sm transition-colors mb-0.5',
+                                        isActive
+                                            ? 'bg-accent/10 text-accent font-medium'
+                                            : 'text-fg/75 hover:text-fg hover:bg-surface-2'
+                                    )}
+                                >
+                                    <Icon size={14} strokeWidth={1.75} />
+                                    <span>{item.label}</span>
+                                    {isActive ? <span className="ml-auto h-1.5 w-1.5 rounded-full bg-accent" /> : null}
+                                </a>
+                            </Link>
+                        );
+                    })}
+                </div>
+            ))}
+        </div>
+        <div className="p-4 border-t border-border">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-muted font-medium mb-2">Connected wallet</p>
+            <p className="font-mono text-xs text-fg/80 break-all">{walletAddress || 'Not connected'}</p>
+        </div>
+    </div>
+);
 
 const AdminShell = ({
     activeRoute,
@@ -41,185 +106,93 @@ const AdminShell = ({
     heroActions,
     children
 }) => {
+    const [mobileNav, setMobileNav] = useState(false);
+    useEffect(() => {
+        if (mobileNav) document.body.style.overflow = 'hidden';
+        else document.body.style.overflow = '';
+    }, [mobileNav]);
+
     return (
-        <Layout>
-            <div className="admin-shell">
-                <aside className="sidebar">
-                    <div>
-                        <div className="logo-block">
-                            <Icon name="ticket" />
-                            <div>
-                                <h2>EventCoin</h2>
-                                <p>E-Commerce Admin</p>
+        <Layout title={title} hideHeader>
+            <div className="min-h-screen bg-bg">
+                <header className="sticky top-0 z-30 backdrop-blur-md bg-bg/85 border-b border-border">
+                    <Container className="flex h-14 items-center justify-between gap-3">
+                        <button
+                            onClick={() => setMobileNav(true)}
+                            className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface text-fg/70 hover:bg-surface-2"
+                            aria-label="Open navigation"
+                        >
+                            <Menu size={15} />
+                        </button>
+                        <div className="hidden lg:flex items-center gap-3">
+                            <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Admin · {activeRoute?.replace('/admin/', '') || 'overview'}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <WalletPill address={walletAddress} />
+                            <ThemeToggle />
+                        </div>
+                    </Container>
+                </header>
+
+                <Container className="py-5 lg:py-8">
+                    <div className="grid lg:grid-cols-[260px_1fr] gap-6">
+                        <aside className="hidden lg:block sticky top-20 self-start h-[calc(100vh-7rem)]">
+                            <Sidebar activeRoute={activeRoute} walletAddress={walletAddress} />
+                        </aside>
+
+                        {mobileNav ? (
+                            <div className="lg:hidden fixed inset-0 z-50 flex">
+                                <motion.div
+                                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                    className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                                    onClick={() => setMobileNav(false)}
+                                />
+                                <motion.div
+                                    initial={{ x: -320 }} animate={{ x: 0 }}
+                                    transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+                                    className="relative w-72 max-w-[85vw] p-3"
+                                >
+                                    <Sidebar
+                                        activeRoute={activeRoute}
+                                        walletAddress={walletAddress}
+                                        onClose={() => setMobileNav(false)}
+                                    />
+                                </motion.div>
                             </div>
-                        </div>
-                        {navSections.map((section) => (
-                            <div className="nav-group" key={section.title}>
-                                <p className="group-title">{section.title}</p>
-                                {section.items.map((item) => (
-                                    <Link route={item.route} legacyBehavior key={item.route}>
-                                        <a className={`nav-item ${activeRoute === item.route ? 'active' : ''}`}>
-                                            {item.label}
-                                        </a>
-                                    </Link>
-                                ))}
-                            </div>
-                        ))}
-                    </div>
-                    <div className="wallet-panel">
-                        <p className="group-title">Connected Wallet</p>
-                        <p className="wallet-address">{walletAddress || 'Not connected'}</p>
-                    </div>
-                </aside>
+                        ) : null}
 
-                <main className="content">
-                    <div className="topbar">
-                        <div>
-                            <h1>{title}</h1>
-                            <p>{subtitle}</p>
-                        </div>
-                        <div className="topbar-actions">
-                            {topActions || (
-                                <Link route="/events/new" legacyBehavior>
-                                    <a><Button primary>Create Event</Button></a>
-                                </Link>
-                            )}
-                        </div>
+                        <main className="min-w-0">
+                            <Reveal>
+                                <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
+                                    <div>
+                                        <h1 className="font-serif text-3xl sm:text-4xl text-fg tracking-tight">{title}</h1>
+                                        {subtitle ? <p className="mt-1.5 text-[15px] text-muted">{subtitle}</p> : null}
+                                    </div>
+                                    {topActions ? (
+                                        <div className="flex items-center gap-2 flex-wrap">{topActions}</div>
+                                    ) : null}
+                                </div>
+                            </Reveal>
+
+                            {heroTitle ? (
+                                <Reveal delay={0.05}>
+                                    <section className="relative mb-6 overflow-hidden rounded-lg border border-border bg-fg text-bg p-7 sm:p-9">
+                                        <div className="absolute -top-20 -right-20 h-56 w-56 rounded-full bg-accent/30 blur-3xl pointer-events-none" />
+                                        <div className="relative">
+                                            <span className="text-[10px] uppercase tracking-[0.2em] text-bg/60 font-medium">Command center</span>
+                                            <h2 className="font-serif text-2xl sm:text-3xl mt-2">{heroTitle}</h2>
+                                            {heroDescription ? <p className="mt-2 text-[15px] text-bg/75 max-w-2xl">{heroDescription}</p> : null}
+                                            {heroActions ? <div className="mt-5 flex items-center gap-2 flex-wrap">{heroActions}</div> : null}
+                                        </div>
+                                    </section>
+                                </Reveal>
+                            ) : null}
+
+                            <div>{children}</div>
+                        </main>
                     </div>
-
-                    {heroTitle ? (
-                        <section className="hero-banner">
-                            <h2>{heroTitle}</h2>
-                            <p>{heroDescription}</p>
-                            {heroActions ? <div className="hero-actions">{heroActions}</div> : null}
-                        </section>
-                    ) : null}
-
-                    {children}
-                </main>
+                </Container>
             </div>
-
-            <style jsx>{`
-                .admin-shell {
-                    display: grid;
-                    grid-template-columns: 250px 1fr;
-                    gap: 18px;
-                    min-height: calc(100vh - 130px);
-                }
-                .sidebar {
-                    background: #0f172a;
-                    color: #f8fafc;
-                    border-radius: 16px;
-                    padding: 18px;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                }
-                .logo-block {
-                    display: flex;
-                    gap: 10px;
-                    align-items: center;
-                    margin-bottom: 18px;
-                }
-                .logo-block h2,
-                .content h1,
-                .content h2,
-                .content h3 {
-                    font-family: 'Syne', sans-serif;
-                }
-                .logo-block h2 {
-                    margin: 0;
-                    font-size: 1.2rem;
-                }
-                .logo-block p {
-                    margin: 0;
-                    color: #94a3b8;
-                    font-size: 0.85rem;
-                }
-                .nav-group {
-                    margin-bottom: 18px;
-                }
-                .group-title {
-                    color: #94a3b8;
-                    text-transform: uppercase;
-                    letter-spacing: 0.08em;
-                    font-size: 0.72rem;
-                    margin-bottom: 8px;
-                }
-                .nav-item {
-                    display: block;
-                    color: #cbd5e1;
-                    padding: 7px 10px;
-                    border-radius: 10px;
-                    margin-bottom: 4px;
-                }
-                .nav-item.active {
-                    background: #1e3a8a;
-                    color: white;
-                    font-weight: 700;
-                }
-                .wallet-panel {
-                    border-top: 1px solid #334155;
-                    padding-top: 12px;
-                }
-                .wallet-address {
-                    font-size: 0.78rem;
-                    word-break: break-word;
-                    color: #e2e8f0;
-                }
-                .content {
-                    background: #f8fafc;
-                    border-radius: 16px;
-                    padding: 18px;
-                }
-                .topbar {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 14px;
-                }
-                .topbar h1 {
-                    margin: 0;
-                    font-size: 1.65rem;
-                    color: #0f172a;
-                }
-                .topbar p {
-                    margin: 4px 0 0;
-                    color: #64748b;
-                }
-                .topbar-actions {
-                    display: flex;
-                    gap: 10px;
-                }
-                .hero-banner {
-                    background: linear-gradient(110deg, #0f172a, #1e293b);
-                    color: #f8fafc;
-                    border-radius: 14px;
-                    padding: 20px;
-                    margin-bottom: 14px;
-                }
-                .hero-banner h2 {
-                    margin-top: 0;
-                    font-family: 'Syne', sans-serif;
-                }
-                .hero-actions {
-                    display: flex;
-                    gap: 10px;
-                    margin-top: 10px;
-                }
-                @media (max-width: 1100px) {
-                    .admin-shell {
-                        grid-template-columns: 1fr;
-                    }
-                }
-                @media (max-width: 680px) {
-                    .topbar {
-                        flex-direction: column;
-                        align-items: flex-start;
-                        gap: 10px;
-                    }
-                }
-            `}</style>
         </Layout>
     );
 };

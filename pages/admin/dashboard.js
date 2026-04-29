@@ -1,14 +1,23 @@
 import React, { Component } from 'react';
-import { Button, Message, Grid, Input, Dropdown } from 'semantic-ui-react';
+import { motion } from 'framer-motion';
+import { Search, Plus, ArrowRight, ShieldCheck, Wallet, AlertCircle, Calendar, Activity } from 'lucide-react';
 import { contractAddress, getDeployedEventsInstance } from '../../ethereum/factory';
 import AdminShell from '../../components/adminShell';
 import { Link } from '../../routes';
 import Event from '../../ethereum/event';
+import {
+    Card, Button, Badge, Reveal, Input, EmptyState
+} from '../../components/ui';
+import { cn } from '../../lib/cn';
 
 class AdminDashboard extends Component {
     static async getInitialProps() {
         if (!contractAddress || !getDeployedEventsInstance) {
-            return { events: [], stats: { totalEvents: 0, ticketsSold: 0, revenueWei: 0, validations: 0 }, loadError: 'Set NEXT_PUBLIC_DIAMOND_ADDRESS in .env to load deployed events.' };
+            return {
+                events: [],
+                stats: { totalEvents: 0, ticketsSold: 0, revenueWei: 0, validations: 0 },
+                loadError: 'Set NEXT_PUBLIC_DIAMOND_ADDRESS in .env to load deployed events.'
+            };
         }
 
         try {
@@ -27,7 +36,7 @@ class AdminDashboard extends Component {
                         const isUsed = ticket.isUsed || ticket[1];
                         if (isUsed) validations += 1;
                     } catch (e) {
-                        // If ticket lookup fails for this id, skip.
+                        // skip
                     }
                 }
 
@@ -53,19 +62,18 @@ class AdminDashboard extends Component {
 
             return { events, stats, loadError: '' };
         } catch (error) {
-            return { events: [], stats: { totalEvents: 0, ticketsSold: 0, revenueWei: 0, validations: 0 }, loadError: 'Unable to load events from the blockchain right now.' };
+            return {
+                events: [],
+                stats: { totalEvents: 0, ticketsSold: 0, revenueWei: 0, validations: 0 },
+                loadError: 'Unable to load events from the blockchain right now.'
+            };
         }
     }
 
-    state = {
-        adminAccount: '',
-        searchTerm: '',
-        sortOrder: 'latest'
-    };
+    state = { adminAccount: '', searchTerm: '', sortOrder: 'latest' };
 
     componentDidMount() {
-        const adminAccount = window.localStorage.getItem('adminAccount') || '';
-        this.setState({ adminAccount });
+        this.setState({ adminAccount: window.localStorage.getItem('adminAccount') || '' });
     }
 
     getFilteredEvents() {
@@ -85,290 +93,196 @@ class AdminDashboard extends Component {
         return filtered;
     }
 
-    renderEventsTable() {
-        const filteredEvents = this.getFilteredEvents();
-        if (filteredEvents.length === 0) {
-            return <p style={{ color: '#64748b' }}>No events found yet. Create your first event.</p>;
-        }
-
-        return (
-            <div className="event-table-wrap">
-                <table className="event-table">
-                    <thead>
-                        <tr>
-                            <th>Contract Address</th>
-                            <th>Status</th>
-                            <th>Performance</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredEvents.map((event) => {
-                            const soldOut = event.ticketSupply > 0 && event.ticketsSold >= event.ticketSupply;
-                            const statusClass = soldOut ? 'draft' : 'live';
-
-                            return (
-                                <tr key={event.address}>
-                                    <td>
-                                        <p style={{ margin: 0, fontWeight: 700 }}>{event.name || 'Unnamed Event'}</p>
-                                        <p style={{ margin: '2px 0', color: '#475569', fontSize: '0.8rem' }}>{event.eventDate || 'No date set'}</p>
-                                        <p className="mono">{event.address}</p>
-                                    </td>
-                                    <td>
-                                        <span className={`status-pill ${statusClass}`}>
-                                            {soldOut ? 'Sold Out' : 'Live'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span className="trend-badge positive">
-                                            {event.ticketsSold}/{event.ticketSupply}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <Link route={`/events/${event.address}`} legacyBehavior>
-                                            <a className="action-link">Dashboard</a>
-                                        </Link>
-                                        <Link route={`/events/${event.address}/validate`} legacyBehavior>
-                                            <a className="action-link">Validate</a>
-                                        </Link>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
-        );
-    }
-
     render() {
-        const sortOptions = [
-            { key: 'latest', text: 'Latest First', value: 'latest' },
-            { key: 'oldest', text: 'Oldest First', value: 'oldest' }
-        ];
-
+        const filtered = this.getFilteredEvents();
         const statCards = [
-            { title: 'Total Events', value: this.props.stats.totalEvents, accent: '#2563EB' },
-            { title: 'Tickets Sold', value: this.props.stats.ticketsSold, accent: '#16A34A' },
-            { title: 'Revenue (wei)', value: this.props.stats.revenueWei, accent: '#F59E0B' },
-            { title: 'Validations', value: this.props.stats.validations, accent: '#A855F7' }
+            { title: 'Total events', value: this.props.stats.totalEvents, icon: Calendar },
+            { title: 'Tickets sold', value: this.props.stats.ticketsSold, icon: ShieldCheck },
+            { title: 'Revenue', value: this.props.stats.revenueWei, suffix: 'wei', mono: true, icon: Wallet },
+            { title: 'Validations', value: this.props.stats.validations, icon: Activity }
         ];
 
         return (
             <AdminShell
                 activeRoute="/admin/dashboard"
-                title="Admin Dashboard"
-                subtitle="Manage blockchain events, tickets, and validations."
+                title="Dashboard"
+                subtitle="Overview of every event contract under your management."
                 walletAddress={this.state.adminAccount}
-                topActions={(
-                    <>
-                        <Link route="/events/new" legacyBehavior>
-                            <a><Button primary>Create Event</Button></a>
-                        </Link>
-                        <Button basic color="blue">Export Data</Button>
-                    </>
-                )}
-                heroTitle="Wallet Command Center"
+                topActions={
+                    <Link route="/events/new" legacyBehavior>
+                        <a>
+                            <Button leftIcon={<Plus size={14} strokeWidth={2} />}>Create event</Button>
+                        </a>
+                    </Link>
+                }
+                heroTitle="Wallet command center"
                 heroDescription={this.state.adminAccount || 'Connect wallet to unlock admin actions.'}
-                heroActions={(
+                heroActions={
                     <>
                         <Link route="/admin/ticket-validation" legacyBehavior>
-                            <a><Button color="blue">Open Validation Queue</Button></a>
+                            <a>
+                                <Button size="sm" className="bg-accent text-accent-fg hover:bg-accent-hover">
+                                    Open validation queue
+                                </Button>
+                            </a>
                         </Link>
-                        <Button basic inverted>View Smart Contract</Button>
                     </>
-                )}
+                }
             >
-                <section className="stats-grid">
-                    {statCards.map((card) => (
-                        <article key={card.title} className="stat-card" style={{ borderTopColor: card.accent }}>
-                            <p className="stat-title">{card.title}</p>
-                            <h3>{card.value}</h3>
-                        </article>
-                    ))}
-                </section>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+                    {statCards.map((s, i) => {
+                        const Icon = s.icon;
+                        return (
+                            <Reveal key={s.title} delay={i * 0.04}>
+                                <Card className="p-5">
+                                    <div className="flex items-start justify-between">
+                                        <span className="text-[10px] tracking-[0.18em] uppercase text-muted font-medium">{s.title}</span>
+                                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-accent/10 text-accent">
+                                            <Icon size={13} strokeWidth={1.75} />
+                                        </span>
+                                    </div>
+                                    <div className="font-serif text-3xl text-fg mt-3 inline-flex items-baseline gap-2">
+                                        <span className={s.mono ? 'font-mono text-2xl' : ''}>{s.value}</span>
+                                        {s.suffix ? <span className="text-xs uppercase tracking-[0.18em] text-muted font-sans">{s.suffix}</span> : null}
+                                    </div>
+                                </Card>
+                            </Reveal>
+                        );
+                    })}
+                </div>
 
-                <Grid stackable columns={2} className="content-grid">
-                    <Grid.Column width={11}>
-                        <section className="panel">
-                            <div className="panel-header">
-                                <h3>Event Management</h3>
-                                <div className="table-controls">
-                                    <Input
-                                        icon="search"
-                                        placeholder="Search contract address..."
-                                        value={this.state.searchTerm}
-                                        onChange={(event) => this.setState({ searchTerm: event.target.value })}
-                                    />
-                                    <Dropdown
-                                        selection
-                                        options={sortOptions}
+                <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+                    <Reveal>
+                        <Card className="p-5 sm:p-6">
+                            <div className="flex items-end justify-between gap-3 mb-5 flex-wrap">
+                                <div>
+                                    <h2 className="font-serif text-xl text-fg">Event management</h2>
+                                    <p className="text-sm text-muted mt-0.5">Open an event for ops or validation.</p>
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <div className="relative">
+                                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+                                        <Input
+                                            placeholder="Search address or name"
+                                            value={this.state.searchTerm}
+                                            onChange={(e) => this.setState({ searchTerm: e.target.value })}
+                                            className="pl-9 h-9 text-sm w-56"
+                                        />
+                                    </div>
+                                    <select
                                         value={this.state.sortOrder}
-                                        onChange={(event, data) => this.setState({ sortOrder: data.value })}
-                                    />
+                                        onChange={(e) => this.setState({ sortOrder: e.target.value })}
+                                        className="h-9 rounded-sm border border-border bg-surface px-3 text-sm text-fg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15"
+                                    >
+                                        <option value="latest">Latest first</option>
+                                        <option value="oldest">Oldest first</option>
+                                    </select>
                                 </div>
                             </div>
-                            {this.renderEventsTable()}
-                        </section>
-                    </Grid.Column>
-                    <Grid.Column width={5}>
-                        <section className="panel">
-                            <h3>Quick Actions</h3>
-                            <Link route="/events/new" legacyBehavior>
-                                <a><Button primary fluid style={{ marginBottom: '10px' }}>Create New Event</Button></a>
-                            </Link>
-                            <Link route="/admin/ticket-validation" legacyBehavior>
-                                <a><Button fluid style={{ marginBottom: '10px' }}>Open Validation Center</Button></a>
-                            </Link>
-                            <Link route="/admin/revenue" legacyBehavior>
-                                <a><Button fluid>Open Finance Overview</Button></a>
-                            </Link>
-                        </section>
-                        <section className="panel" style={{ marginTop: '16px' }}>
-                            <h3>On-Chain Snapshot</h3>
-                            <ul className="activity-list">
-                                <li><span className="dot blue" /> Contracts loaded: {this.props.stats.totalEvents}</li>
-                                <li><span className="dot green" /> Sold tickets: {this.props.stats.ticketsSold}</li>
-                                <li><span className="dot orange" /> Used tickets: {this.props.stats.validations}</li>
-                            </ul>
-                        </section>
-                    </Grid.Column>
-                </Grid>
+
+                            {filtered.length === 0 ? (
+                                <EmptyState
+                                    icon={Calendar}
+                                    title="No events yet"
+                                    description="Create your first event to get started."
+                                    action={
+                                        <Link route="/events/new" legacyBehavior>
+                                            <a><Button leftIcon={<Plus size={14} strokeWidth={2} />}>Create event</Button></a>
+                                        </Link>
+                                    }
+                                />
+                            ) : (
+                                <div className="divide-y divide-border -mx-1">
+                                    {filtered.map((event) => {
+                                        const soldOut = event.ticketSupply > 0 && event.ticketsSold >= event.ticketSupply;
+                                        const ratio = event.ticketSupply > 0 ? Math.min((event.ticketsSold / event.ticketSupply) * 100, 100) : 0;
+                                        return (
+                                            <div key={event.address} className="grid grid-cols-[1fr_auto] gap-4 py-4 px-1 items-center">
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <h3 className="font-medium text-fg truncate">{event.name || 'Unnamed event'}</h3>
+                                                        <Badge tone={soldOut ? 'danger' : 'accent'}>{soldOut ? 'Sold out' : 'Live'}</Badge>
+                                                    </div>
+                                                    <p className="text-xs text-muted mt-0.5">{event.eventDate || 'No date set'}</p>
+                                                    <p className="font-mono text-[11px] text-muted mt-1 truncate">{event.address}</p>
+                                                    <div className="mt-2.5 flex items-center gap-2">
+                                                        <div className="h-1 w-32 rounded-full bg-surface-2 overflow-hidden">
+                                                            <motion.div
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: `${ratio}%` }}
+                                                                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                                                                className="h-full bg-accent"
+                                                            />
+                                                        </div>
+                                                        <span className="text-[11px] font-mono text-muted">{event.ticketsSold}/{event.ticketSupply}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Link route={`/events/${event.address}`} legacyBehavior>
+                                                        <a>
+                                                            <Button size="sm" variant="outline" rightIcon={<ArrowRight size={13} strokeWidth={2} />}>Open</Button>
+                                                        </a>
+                                                    </Link>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </Card>
+                    </Reveal>
+
+                    <div className="space-y-3">
+                        <Reveal delay={0.05}>
+                            <Card className="p-5">
+                                <h3 className="font-serif text-lg text-fg mb-4">Quick actions</h3>
+                                <div className="flex flex-col gap-2">
+                                    <Link route="/events/new" legacyBehavior>
+                                        <a><Button className="w-full" leftIcon={<Plus size={14} strokeWidth={2} />}>Create event</Button></a>
+                                    </Link>
+                                    <Link route="/admin/ticket-validation" legacyBehavior>
+                                        <a><Button variant="outline" className="w-full">Validation center</Button></a>
+                                    </Link>
+                                    <Link route="/admin/revenue" legacyBehavior>
+                                        <a><Button variant="ghost" className="w-full">Finance overview</Button></a>
+                                    </Link>
+                                </div>
+                            </Card>
+                        </Reveal>
+
+                        <Reveal delay={0.1}>
+                            <Card className="p-5">
+                                <h3 className="font-serif text-lg text-fg mb-4">On-chain snapshot</h3>
+                                <ul className="space-y-2.5 text-sm">
+                                    <li className="flex items-center gap-2.5">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                                        <span className="text-muted">Contracts loaded:</span>
+                                        <span className="text-fg font-medium ml-auto">{this.props.stats.totalEvents}</span>
+                                    </li>
+                                    <li className="flex items-center gap-2.5">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                                        <span className="text-muted">Tickets sold:</span>
+                                        <span className="text-fg font-medium ml-auto">{this.props.stats.ticketsSold}</span>
+                                    </li>
+                                    <li className="flex items-center gap-2.5">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-warning" />
+                                        <span className="text-muted">Tickets used:</span>
+                                        <span className="text-fg font-medium ml-auto">{this.props.stats.validations}</span>
+                                    </li>
+                                </ul>
+                            </Card>
+                        </Reveal>
+                    </div>
+                </div>
 
                 {this.props.loadError ? (
-                    <Message error content={this.props.loadError} style={{ marginTop: '14px' }} />
+                    <Card className="mt-6 p-4 border-danger/30 bg-danger/5">
+                        <div className="flex items-start gap-2">
+                            <AlertCircle size={15} className="text-danger mt-0.5" strokeWidth={1.75} />
+                            <p className="text-sm text-fg">{this.props.loadError}</p>
+                        </div>
+                    </Card>
                 ) : null}
-                <style jsx>{`
-                    .stats-grid {
-                        display: grid;
-                        grid-template-columns: repeat(4, minmax(0, 1fr));
-                        gap: 12px;
-                        margin-bottom: 14px;
-                    }
-                    .stat-card {
-                        background: white;
-                        border-radius: 12px;
-                        border-top: 4px solid #2563eb;
-                        padding: 14px;
-                        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
-                    }
-                    .stat-title {
-                        color: #64748b;
-                        margin: 0 0 6px;
-                        font-size: 0.86rem;
-                    }
-                    .stat-card h3 {
-                        margin: 0 0 8px;
-                        color: #0f172a;
-                    }
-                    .content-grid {
-                        margin-top: 0;
-                    }
-                    .panel {
-                        background: white;
-                        border-radius: 12px;
-                        padding: 14px;
-                        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
-                    }
-                    .panel h3 {
-                        margin-top: 0;
-                        color: #0f172a;
-                    }
-                    .panel-header {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        gap: 8px;
-                        margin-bottom: 10px;
-                    }
-                    .table-controls {
-                        display: flex;
-                        gap: 8px;
-                    }
-                    .event-table-wrap {
-                        overflow-x: auto;
-                    }
-                    .event-table {
-                        width: 100%;
-                        border-collapse: collapse;
-                    }
-                    .event-table th,
-                    .event-table td {
-                        padding: 10px 8px;
-                        border-bottom: 1px solid #e2e8f0;
-                        text-align: left;
-                        font-size: 0.9rem;
-                    }
-                    .event-table th {
-                        color: #475569;
-                        font-weight: 700;
-                    }
-                    .mono {
-                        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-                        font-size: 0.8rem;
-                    }
-                    .status-pill {
-                        padding: 4px 10px;
-                        border-radius: 999px;
-                        font-size: 0.75rem;
-                        font-weight: 600;
-                    }
-                    .status-pill.live {
-                        background: #dcfce7;
-                        color: #166534;
-                    }
-                    .status-pill.draft {
-                        background: #f1f5f9;
-                        color: #334155;
-                    }
-                    .trend-badge {
-                        padding: 4px 8px;
-                        border-radius: 999px;
-                        font-size: 0.74rem;
-                        font-weight: 700;
-                    }
-                    .trend-badge.positive {
-                        background: #dbeafe;
-                        color: #1d4ed8;
-                    }
-                    .action-link {
-                        color: #2563eb;
-                        margin-right: 10px;
-                        font-weight: 600;
-                    }
-                    .activity-list {
-                        list-style: none;
-                        padding-left: 0;
-                        margin: 0;
-                    }
-                    .activity-list li {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        color: #334155;
-                        font-size: 0.9rem;
-                        margin-bottom: 10px;
-                    }
-                    .dot {
-                        width: 10px;
-                        height: 10px;
-                        border-radius: 50%;
-                        display: inline-block;
-                    }
-                    .dot.blue { background: #2563eb; }
-                    .dot.green { background: #16a34a; }
-                    .dot.orange { background: #f59e0b; }
-                    .dot.purple { background: #a855f7; }
-
-                    @media (max-width: 680px) {
-                        .table-controls {
-                            flex-direction: column;
-                        }
-                        .stats-grid {
-                            grid-template-columns: 1fr;
-                        }
-                    }
-                `}</style>
             </AdminShell>
         );
     }
