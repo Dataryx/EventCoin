@@ -104,49 +104,51 @@ class ClientDashboard extends Component {
                     <h2>LIVE EVENTS</h2>
                     <div className="line" />
                 </div>
-                {filteredEvents.map((event, index) => {
-                    const isSoldOut = event.ticketSupply > 0 && event.ticketsSold >= event.ticketSupply;
-                    const isFeatured = index === 0;
-                    const left = Math.max(event.ticketSupply - event.ticketsSold, 0);
-                    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][index % 12];
-                    const day = String((index % 27) + 1).padStart(2, '0');
-                    const week = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][index % 7];
+                <div className="events-grid">
+                    {filteredEvents.map((event, index) => {
+                        const isSoldOut = event.ticketSupply > 0 && event.ticketsSold >= event.ticketSupply;
+                        const isFeatured = index === 0;
+                        const left = Math.max(event.ticketSupply - event.ticketsSold, 0);
+                        const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][index % 12];
+                        const day = String((index % 27) + 1).padStart(2, '0');
+                        const week = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][index % 7];
 
-                    return (
-                        <article key={event.address} className={`event-card ${isSoldOut ? 'sold-out' : ''} ${isFeatured ? 'featured' : ''}`}>
-                            <div className="date-col">
-                                {isFeatured && !isSoldOut ? <div className="featured-pill">FEATURED</div> : null}
-                                <small className="month">{month}</small>
-                                <span>{day}</span>
-                                <small className="weekday">{week}</small>
-                            </div>
-                            <div className="event-main">
-                                <h3>{event.name || 'Unnamed Event'}</h3>
-                                {event.eventDate ? <p className="event-date">Date: {event.eventDate}</p> : null}
-                                {event.description ? <p className="desc">{event.description}</p> : null}
-                                <p className="venue-row">
-                                    <span className="pin">◎</span>
-                                    <span className="contract">{event.address}</span>
-                                </p>
-                                <div className="tags">
-                                    <span className={`tag ${isSoldOut ? 'sold' : 'live'}`}>{isSoldOut ? 'SOLD OUT' : 'LIVE NOW'}</span>
-                                    <span className="tag">QR DELIVERY</span>
-                                    <span className="tag">ON-CHAIN</span>
+                        return (
+                            <article key={event.address} className={`event-card ${isSoldOut ? 'sold-out' : ''} ${isFeatured ? 'featured' : ''}`}>
+                                <div className="date-col">
+                                    {isFeatured && !isSoldOut ? <div className="featured-pill">FEATURED</div> : null}
+                                    <small className="month">{month}</small>
+                                    <span>{day}</span>
+                                    <small className="weekday">{week}</small>
                                 </div>
-                            </div>
-                            <div className="event-price">
-                                {!isSoldOut ? <p>FROM</p> : null}
-                                {!isSoldOut ? <h4>${event.ticketPriceWei}</h4> : <h4 className="sold-out-text">SOLD OUT</h4>}
-                                {!isSoldOut ? (
-                                    <Link route={`/events/${event.address}/client`} legacyBehavior>
-                                        <a><Button className="buy-btn">{left > 0 ? 'BUY NOW' : 'CHECKOUT'}</Button></a>
-                                    </Link>
-                                ) : null}
-                                {!isSoldOut ? <small className="left-count">{left} LEFT</small> : null}
-                            </div>
-                        </article>
-                    );
-                })}
+                                <div className="event-main">
+                                    <h3>{event.name || 'Unnamed Event'}</h3>
+                                    {event.eventDate ? <p className="event-date">Date: {event.eventDate}</p> : null}
+                                    {event.description ? <p className="desc">{event.description}</p> : null}
+                                    <p className="venue-row">
+                                        <span className="pin">◎</span>
+                                        <span className="contract">{event.address}</span>
+                                    </p>
+                                    <div className="tags">
+                                        <span className={`tag ${isSoldOut ? 'sold' : 'live'}`}>{isSoldOut ? 'SOLD OUT' : 'LIVE NOW'}</span>
+                                        <span className="tag">QR DELIVERY</span>
+                                        <span className="tag">ON-CHAIN</span>
+                                    </div>
+                                </div>
+                                <div className="event-price">
+                                    {!isSoldOut ? <p>FROM</p> : null}
+                                    {!isSoldOut ? <h4>${event.ticketPriceWei}</h4> : <h4 className="sold-out-text">SOLD OUT</h4>}
+                                    {!isSoldOut ? (
+                                        <Link route={`/events/${event.address}/client`} legacyBehavior>
+                                            <a><Button className="buy-btn">{left > 0 ? 'BUY NOW' : 'CHECKOUT'}</Button></a>
+                                        </Link>
+                                    ) : null}
+                                    {!isSoldOut ? <small className="left-count">{left} LEFT</small> : null}
+                                </div>
+                            </article>
+                        );
+                    })}
+                </div>
             </div>
         );
     }
@@ -278,6 +280,12 @@ class ClientDashboard extends Component {
                         border-color: #026CDF;
                     }
                     .events-list { display: flex; flex-direction: column; gap: 10px; }
+                    .events-grid {
+                        display: grid;
+                        grid-template-columns: repeat(3, minmax(0, 1fr));
+                        gap: 10px;
+                        align-items: stretch;
+                    }
                     .section-header {
                         display: flex;
                         align-items: center;
@@ -301,12 +309,13 @@ class ClientDashboard extends Component {
                     .event-card {
                         background: white;
                         border-radius: 16px;
-                        display: grid;
-                        grid-template-columns: 86px 1fr 170px;
-                        gap: 12px;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 0;
                         border: 1px solid #e2e8f0;
                         overflow: hidden;
                         transition: border-color 0.2s ease, box-shadow 0.2s ease;
+                        min-height: 100%;
                     }
                     .event-card.featured { border: 2px solid #026CDF; }
                     .event-card:not(.featured):hover {
@@ -318,13 +327,14 @@ class ClientDashboard extends Component {
                         background: #002060;
                         color: white;
                         display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        justify-content: center;
+                        flex-direction: row;
+                        align-items: baseline;
+                        justify-content: flex-start;
+                        gap: 8px;
                         font-family: 'Barlow Condensed', sans-serif;
-                        font-size: 2.1rem;
+                        font-size: 1.6rem;
                         position: relative;
-                        padding: 8px 0;
+                        padding: 10px 12px;
                     }
                     .featured-pill {
                         position: absolute;
@@ -340,10 +350,10 @@ class ClientDashboard extends Component {
                     }
                     .date-col .month { font-size: 1.1rem; color: #00B9F2; letter-spacing: 0.07em; }
                     .date-col .weekday { font-size: 0.9rem; letter-spacing: 0.07em; opacity: 0.92; }
-                    .event-main { padding: 10px 0; }
+                    .event-main { padding: 10px 12px 4px; }
                     .event-main h3 {
                         margin: 0 0 5px;
-                        font-size: 13px;
+                        font-size: 1rem;
                         font-weight: 800;
                         color: #0f172a;
                     }
@@ -365,11 +375,13 @@ class ClientDashboard extends Component {
                     .tag.live { background: #dcfce7; color: #00A651; }
                     .tag.sold { background: #fee2e2; color: #E53E3E; }
                     .event-price {
-                        padding: 10px;
+                        padding: 10px 12px 12px;
                         display: flex;
                         flex-direction: column;
-                        align-items: flex-end;
+                        align-items: flex-start;
                         justify-content: center;
+                        margin-top: auto;
+                        border-top: 1px solid #e2e8f0;
                     }
                     .event-price p { margin: 0; color: #64748b; font-size: 0.76rem; }
                     .event-price h4 {
@@ -388,10 +400,12 @@ class ClientDashboard extends Component {
                     }
                     .left-count { color: #64748b; font-size: 0.72rem; margin-top: 6px; }
                     .empty-state { color: #64748b; padding: 16px; background: white; border-radius: 12px; }
+                    @media (max-width: 1120px) {
+                        .events-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+                    }
                     @media (max-width: 800px) {
                         .summary-row { grid-template-columns: 1fr; }
-                        .event-card { grid-template-columns: 78px 1fr; }
-                        .event-price { align-items: flex-start; grid-column: span 2; border-top: 1px solid #e2e8f0; }
+                        .events-grid { grid-template-columns: 1fr; }
                     }
                 `}</style>
             </Layout>

@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Card, Button, Message, Segment, Header, Grid, Label, Divider, Icon, List, Input } from 'semantic-ui-react';
+import { Button, Message, Input, Icon } from 'semantic-ui-react';
 import { QRCodeSVG } from 'qrcode.react';
 import Layout from '../../components/layout';
 import Event from '../../ethereum/event';
@@ -17,7 +17,7 @@ class ClientEventShow extends Component {
             ticketsSold: summary[3].toString(),
             description: summary[4] || '',
             eventDate: summary[5] || '',
-            contractAddress: props.query.address,
+            contractAddress: props.query.address
         };
     }
 
@@ -69,9 +69,13 @@ class ClientEventShow extends Component {
         const event = Event(this.props.contractAddress);
 
         try {
+            if (!window.ethereum) {
+                throw new Error('Install MetaMask to complete checkout.');
+            }
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
             const accounts = await web3.eth.getAccounts();
             if (!accounts.length) {
-                throw new Error('No wallet account found. Login as client first.');
+                throw new Error('No wallet account found. Connect MetaMask first.');
             }
 
             const buyerAddress = accounts[0];
@@ -89,7 +93,6 @@ class ClientEventShow extends Component {
                     from: buyerAddress,
                     value: this.props.ticketPrice
                 });
-
                 const ticketId = result.events.TicketPurchased.returnValues.ticketId;
                 const qrPayload = this.createQrPayload(ticketId, buyerAddress);
                 newTickets.push({
@@ -136,149 +139,173 @@ class ClientEventShow extends Component {
         });
     };
 
-    renderCards() {
-        const { name, ticketPrice, ticketSupply, ticketsSold, description, eventDate } = this.props;
-
-        const items = [
-            {
-                header: name,
-                description: 'Buy your ticket from this client dashboard'
-            },
-            {
-                header: ticketPrice,
-                meta: '$',
-                description: 'Price of one ticket'
-            },
-            {
-                header: ticketSupply - ticketsSold,
-                description: 'Tickets available'
-            },
-            {
-                header: ticketsSold,
-                description: 'Tickets sold'
-            },
-            {
-                header: eventDate || 'Not set',
-                description: 'Event date'
-            },
-            {
-                header: description || 'No description',
-                description: 'Event description'
-            }
-        ];
-
-        return <Card.Group items={items} />;
-    }
-
-    renderTicketQrCodes() {
+    renderTicketQrCards() {
         if (!this.state.purchasedTickets.length) {
-            return <p>No purchased tickets in this browser for this event yet.</p>;
+            return <p className="empty-tickets">No purchased tickets in this browser for this event yet.</p>;
         }
 
-        const handleCopy = async (qrPayload, ticketId) => {
-            try {
-                await navigator.clipboard.writeText(qrPayload);
-                this.setState({ copiedTicketId: ticketId.toString() });
-            } catch (error) {
-                this.setState({ errorMessage: 'Unable to copy QR payload from this browser.' });
-            }
-        };
-
         return this.state.purchasedTickets.map((ticket) => (
-            <Segment key={ticket.ticketId} style={{ marginTop: '12px' }}>
-                <Header as="h4">
-                    <Icon name="qrcode" />
-                    <Header.Content>Ticket #{ticket.ticketId}</Header.Content>
-                </Header>
-                <p>Owner: {ticket.buyerAddress}</p>
-                <QRCodeSVG value={ticket.qrPayload} size={180} />
-                <p style={{ marginTop: '10px', wordBreak: 'break-word' }}>
-                    QR payload: {ticket.qrPayload}
-                </p>
+            <article key={ticket.ticketId} className="qr-card">
+                <div className="qr-card-head">
+                    <h4>Ticket #{ticket.ticketId}</h4>
+                    <span className="ticket-pill">QR READY</span>
+                </div>
+                <p className="owner-row">Owner: {ticket.buyerAddress}</p>
+                <div className="qr-wrap">
+                    <QRCodeSVG value={ticket.qrPayload} size={180} />
+                </div>
+                <p className="payload-copy">{ticket.qrPayload}</p>
                 <Button
                     basic
-                    color="teal"
+                    color="blue"
                     size="tiny"
-                    onClick={() => handleCopy(ticket.qrPayload, ticket.ticketId)}
+                    onClick={async () => {
+                        try {
+                            await navigator.clipboard.writeText(ticket.qrPayload);
+                            this.setState({ copiedTicketId: ticket.ticketId.toString() });
+                        } catch (error) {
+                            this.setState({ errorMessage: 'Unable to copy QR payload from this browser.' });
+                        }
+                    }}
                 >
                     Copy QR Payload
                 </Button>
-                {this.state.copiedTicketId === ticket.ticketId ? (
-                    <Label color="green" style={{ marginLeft: '10px' }}>Copied</Label>
-                ) : null}
-            </Segment>
+                {this.state.copiedTicketId === ticket.ticketId ? <span className="copied-pill">Copied</span> : null}
+            </article>
         ));
     }
 
     render() {
+        const availableTickets = Math.max(parseInt(this.props.ticketSupply, 10) - parseInt(this.props.ticketsSold, 10), 0);
+        const sellThrough = parseInt(this.props.ticketSupply, 10)
+            ? Math.min(Math.round((parseInt(this.props.ticketsSold, 10) / parseInt(this.props.ticketSupply, 10)) * 100), 100)
+            : 0;
+
         return (
             <Layout>
-                <Segment
-                    padded="very"
-                    style={{
-                        borderRadius: '16px',
-                        border: '1px solid #155e75',
-                        backgroundImage:
-                            "linear-gradient(105deg, rgba(15, 23, 42, 0.88), rgba(8, 145, 178, 0.62)), url('https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=1600&q=80')",
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        color: '#f8fafc'
-                    }}
-                >
-                    <Header as="h2">Client Event Storefront</Header>
-                    <Label color="teal" content="Purchase and Checkout" />
-                    <p style={{ marginTop: '10px' }}>
-                        Logged-in client wallet: {this.state.clientAccount || 'Not logged in'}
-                    </p>
-                </Segment>
+                <div className="tm-client-page">
+                    <section className="hero-panel">
+                        <div className="hero-copy">
+                            <span className="kicker">EventCoin Commerce Hub</span>
+                            <h1>{this.props.name || 'Unnamed Event'}</h1>
+                            <p>{this.props.description || 'Get tickets instantly with Ticketmaster-style checkout and QR delivery.'}</p>
+                            <div className="hero-tags">
+                                <span className="tag">{this.props.eventDate || 'Date TBD'}</span>
+                                <span className="tag">Sell-through {sellThrough}%</span>
+                                <span className="tag">{availableTickets} LEFT</span>
+                            </div>
+                        </div>
+                        <div className="hero-side">
+                            <p className="side-label">Client Session</p>
+                            <h2>${this.props.ticketPrice}</h2>
+                            <p className="side-copy">Price per ticket</p>
+                            <p className="wallet-copy">{this.state.clientAccount || 'No active client profile'}</p>
+                        </div>
+                    </section>
 
-                <Grid stackable columns={2}>
-                    <Grid.Column width={10}>
-                        {this.renderCards()}
-                    </Grid.Column>
-                    <Grid.Column width={6}>
-                        <Segment>
-                            <Header as="h4">Checkout</Header>
-                            <List>
-                                <List.Item icon="check circle" content="Secure on-chain purchase" />
-                                <List.Item icon="check circle" content="Instant QR delivery after payment" />
-                                <List.Item icon="check circle" content="Admin-side QR validation supported" />
-                            </List>
-                            <Divider />
-                            <p>Ticket price: <strong>${this.props.ticketPrice}</strong></p>
-                            <p>Event: <strong>{this.props.name}</strong></p>
-                            <p>Tickets available: <strong>{parseInt(this.props.ticketSupply, 10) - parseInt(this.props.ticketsSold, 10)}</strong></p>
+                    {this.state.errorMessage ? <Message error content={this.state.errorMessage} /> : null}
+                    {this.state.successMessage ? <Message success content={this.state.successMessage} /> : null}
+
+                    <section className="checkout-grid">
+                        <article className="info-card">
+                            <span className="section-kicker">Event Snapshot</span>
+                            <h3>Purchase Insights</h3>
+                            <div className="insight-grid">
+                                <div className="insight-item"><span>Available</span><strong>{availableTickets}</strong></div>
+                                <div className="insight-item"><span>Sold</span><strong>{this.props.ticketsSold}</strong></div>
+                                <div className="insight-item"><span>Capacity</span><strong>{this.props.ticketSupply}</strong></div>
+                                <div className="insight-item"><span>Contract</span><strong className="mono">{this.props.contractAddress}</strong></div>
+                            </div>
+                        </article>
+
+                        <article className="checkout-card">
+                            <span className="section-kicker">Checkout</span>
+                            <h3>Buy Tickets</h3>
+                            <p className="checkout-note">
+                                <Icon name="check circle" /> Secure on-chain purchase and instant QR ticket issuance.
+                            </p>
                             <Input
                                 type="number"
                                 min="1"
                                 value={this.state.quantity}
                                 onChange={(event) => this.setState({ quantity: event.target.value })}
-                                style={{ marginBottom: '10px' }}
                                 fluid
                                 label="Qty"
                                 labelPosition="left"
                             />
-                            <Button onClick={this.handleAddToCart} color="blue" fluid style={{ marginBottom: '8px' }}>
+                            <Button className="tm-btn" onClick={this.handleAddToCart} fluid>
                                 Add to Cart
                             </Button>
-                            <p>Cart quantity: <strong>{this.state.cartQuantity}</strong></p>
-                            <Button loading={this.state.loading} onClick={this.handleCheckout} primary fluid>
+                            <p className="cart-row">Cart quantity: <strong>{this.state.cartQuantity}</strong></p>
+                            <Button loading={this.state.loading} onClick={this.handleCheckout} primary fluid className="tm-btn checkout-btn">
                                 Checkout
                             </Button>
-                        </Segment>
-                    </Grid.Column>
-                </Grid>
+                        </article>
+                    </section>
 
-                {this.state.errorMessage && (
-                    <Message error header="Oops!" content={this.state.errorMessage} style={{ marginTop: '10px' }} />
-                )}
-                {this.state.successMessage && (
-                    <Message success header="Success!" content={this.state.successMessage} style={{ marginTop: '10px' }} />
-                )}
+                    <section className="tickets-rail">
+                        <div className="tickets-head">
+                            <span className="section-kicker">My Tickets</span>
+                            <h3>QR Ticket Wallet</h3>
+                        </div>
+                        <div className="tickets-grid">
+                            {this.renderTicketQrCards()}
+                        </div>
+                    </section>
+                </div>
 
-                <Divider />
-                <h4>Your Ticket QR Codes</h4>
-                {this.renderTicketQrCodes()}
+                <style jsx>{`
+                    .tm-client-page { display: flex; flex-direction: column; gap: 14px; font-family: 'Nunito Sans', sans-serif; }
+                    .hero-panel {
+                        display: grid;
+                        grid-template-columns: 1.2fr 0.8fr;
+                        gap: 16px;
+                        padding: 24px;
+                        border-radius: 24px;
+                        background: radial-gradient(circle at top right, rgba(0, 185, 242, 0.24), transparent 30%), linear-gradient(125deg, #00112c 0%, #002d72 55%, #026cdf 100%);
+                        color: white;
+                        box-shadow: 0 24px 44px rgba(0, 32, 96, 0.2);
+                    }
+                    .kicker, .section-kicker { display: inline-block; margin-bottom: 8px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.11em; font-weight: 800; color: #7dd3fc; }
+                    .hero-copy h1 { margin: 0 0 8px; font-family: 'Barlow Condensed', sans-serif; font-size: 2.7rem; text-transform: uppercase; letter-spacing: 0.03em; }
+                    .hero-copy p { margin: 0 0 10px; color: #dbeafe; line-height: 1.6; }
+                    .hero-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+                    .tag { border-radius: 999px; border: 1px solid rgba(191, 219, 254, 0.45); background: rgba(15, 23, 42, 0.28); padding: 6px 10px; font-size: 0.74rem; font-weight: 700; }
+                    .hero-side { border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(2, 23, 60, 0.42); padding: 16px; }
+                    .side-label { margin: 0; color: #bae6fd; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
+                    .hero-side h2 { margin: 8px 0 4px; font-family: 'Barlow Condensed', sans-serif; font-size: 2.6rem; }
+                    .side-copy { margin: 0 0 10px; color: #dbeafe; }
+                    .wallet-copy { margin: 0; color: #e2e8f0; font-size: 0.8rem; word-break: break-word; }
+                    .checkout-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 12px; }
+                    .info-card, .checkout-card, .tickets-rail {
+                        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+                        border: 1px solid #dbeafe;
+                        border-radius: 20px;
+                        padding: 16px;
+                        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+                    }
+                    .info-card h3, .checkout-card h3, .tickets-head h3 { margin: 0 0 10px; color: #0f172a; font-family: 'Barlow Condensed', sans-serif; font-size: 1.8rem; text-transform: uppercase; letter-spacing: 0.03em; }
+                    .insight-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+                    .insight-item { border: 1px solid #e2e8f0; border-radius: 14px; background: white; padding: 10px; }
+                    .insight-item span { display: block; color: #64748b; font-size: 0.74rem; text-transform: uppercase; margin-bottom: 4px; }
+                    .insight-item strong { color: #0f172a; font-size: 0.92rem; }
+                    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; font-size: 0.78rem !important; }
+                    .checkout-note { color: #334155; margin: 0 0 10px; font-size: 0.88rem; }
+                    .cart-row { margin: 10px 0; color: #334155; }
+                    :global(.tm-btn.ui.button) { border-radius: 14px !important; font-weight: 800 !important; letter-spacing: 0.04em; text-transform: uppercase; margin-top: 8px; }
+                    :global(.checkout-btn.ui.button) { background: linear-gradient(90deg, #002060 0%, #026cdf 100%) !important; }
+                    .tickets-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+                    .qr-card { border: 1px solid #dbe4f0; border-radius: 16px; background: white; padding: 12px; }
+                    .qr-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+                    .qr-card-head h4 { margin: 0; color: #0f172a; font-family: 'Barlow Condensed', sans-serif; font-size: 1.4rem; }
+                    .ticket-pill { border-radius: 999px; padding: 4px 9px; background: #dcfce7; color: #166534; font-size: 0.7rem; font-weight: 800; }
+                    .owner-row { margin: 0 0 8px; color: #334155; font-size: 0.84rem; word-break: break-all; }
+                    .qr-wrap { margin-bottom: 8px; }
+                    .payload-copy { margin: 0 0 8px; color: #64748b; font-size: 0.76rem; line-height: 1.45; word-break: break-all; }
+                    .copied-pill { margin-left: 8px; color: #059669; font-weight: 700; font-size: 0.8rem; }
+                    .empty-tickets { margin: 0; color: #64748b; padding: 8px; }
+                    @media (max-width: 980px) { .hero-panel, .checkout-grid, .tickets-grid { grid-template-columns: 1fr; } .insight-grid { grid-template-columns: 1fr; } }
+                `}</style>
             </Layout>
         );
     }
