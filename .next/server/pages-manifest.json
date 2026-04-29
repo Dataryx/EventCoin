@@ -3,9 +3,7 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/admin/dashboard": "pages/admin/dashboard.js",
-  "/admin/ticket-validation": "pages/admin/ticket-validation.js",
   "/admin/integrations": "pages/admin/integrations.js",
-  "/admin/settings": "pages/admin/settings.js",
-  "/": "pages/index.js",
-  "/client/login": "pages/client/login.js"
+  "/client/login": "pages/client/login.js",
+  "/client/tickets": "pages/client/tickets.js"
 }

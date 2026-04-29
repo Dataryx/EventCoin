@@ -12,11 +12,6 @@
   ],
   "rootMainFiles": [],
   "pages": {
-    "/": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/index.js"
-    ],
     "/_app": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
@@ -37,20 +32,15 @@
       "static/chunks/main.js",
       "static/chunks/pages/admin/integrations.js"
     ],
-    "/admin/settings": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/admin/settings.js"
-    ],
-    "/admin/ticket-validation": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/admin/ticket-validation.js"
-    ],
     "/client/login": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
       "static/chunks/pages/client/login.js"
+    ],
+    "/client/tickets": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/client/tickets.js"
     ]
   },
   "ampFirstPages": []
