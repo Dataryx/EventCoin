@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Form, Button, Message, Segment, Icon, Divider } from 'semantic-ui-react';
+import { Form, Button, Message } from 'semantic-ui-react';
 import Layout from '../../../components/layout';
 import Event from '../../../ethereum/event';
 import web3 from '../../../ethereum/web3';
@@ -10,7 +10,9 @@ class ValidateTicket extends Component {
         const summary = await eventInstance.methods.getEventDetails().call();
         return {
             contractAddress: props.query.address,
-            eventName: summary[0]
+            eventName: summary[0],
+            eventDescription: summary[4] || '',
+            eventDate: summary[5] || ''
         };
     }
 
@@ -143,69 +145,232 @@ class ValidateTicket extends Component {
     render() {
         return (
             <Layout>
-                <h3>Admin Ticket QR Validation</h3>
-                <p><strong>Event:</strong> {this.props.eventName || 'Unnamed Event'}</p>
-                <p><strong>Contract:</strong> {this.props.contractAddress}</p>
-                <p>This page validates tickets for this event only.</p>
+                <div className="tm-validate-page">
+                    <section className="hero-panel">
+                        <div className="hero-copy">
+                            <span className="hero-kicker">Ticketmaster-style Admin</span>
+                            <h1>Admin Ticket QR Validation</h1>
+                            <p className="hero-subtitle">Validate tickets for one event contract using ID lookup, QR image scan, or QR payload text.</p>
+                            <div className="hero-meta">
+                                <span className="meta-pill">{this.props.eventName || 'Unnamed Event'}</span>
+                                <span className="meta-pill">{this.props.eventDate || 'Date TBD'}</span>
+                                <span className="meta-pill mono">{this.props.contractAddress}</span>
+                            </div>
+                        </div>
+                        <div className="hero-side">
+                            <p className="side-label">Validation Scope</p>
+                            <h2>Event-Specific</h2>
+                            <p className="side-copy">{this.props.eventDescription || 'This event is ready for ticket gate validation.'}</p>
+                        </div>
+                    </section>
 
-                <Segment>
-                    <h4>Validate by Ticket ID</h4>
-                    <Form onSubmit={this.onValidateByTicketId} error={!!this.state.errorMessage}>
-                        <Form.Input
-                            label="Ticket ID"
-                            value={this.state.ticketId}
-                            onChange={(event) => this.setState({ ticketId: event.target.value })}
-                            placeholder="Enter ticket id"
-                        />
-                        <Button primary loading={this.state.loading}>
-                            Validate Ticket ID
-                        </Button>
-                    </Form>
-                </Segment>
-
-                <Divider horizontal>OR</Divider>
-
-                <Segment>
-                    <h4>Validate by QR Image Upload</h4>
-                    <Form error={!!this.state.errorMessage}>
-                        <Form.Input
-                            type="file"
-                            accept="image/*"
-                            onChange={this.onUploadQrImage}
-                            label="Upload QR image"
-                        />
-                    </Form>
-                    {this.state.decodedQrText ? (
-                        <p style={{ marginTop: '8px', wordBreak: 'break-word' }}>
-                            Decoded QR payload: {this.state.decodedQrText}
-                        </p>
+                    {this.state.errorMessage ? (
+                        <Message error header="Validation failed" content={this.state.errorMessage} />
                     ) : null}
-                </Segment>
+                    {this.state.successMessage ? (
+                        <Message success header="Validation passed" content={this.state.successMessage} />
+                    ) : null}
 
-                <Divider horizontal>OR</Divider>
+                    <section className="workflow-grid">
+                        <article className="workflow-card">
+                            <span className="section-kicker">Method 1</span>
+                            <h3>Validate by Ticket ID</h3>
+                            <Form onSubmit={this.onValidateByTicketId}>
+                                <Form.Input
+                                    label="Ticket ID"
+                                    value={this.state.ticketId}
+                                    onChange={(event) => this.setState({ ticketId: event.target.value })}
+                                    placeholder="Enter ticket id"
+                                />
+                                <Button primary loading={this.state.loading} className="tm-btn">
+                                    Validate Ticket ID
+                                </Button>
+                            </Form>
+                        </article>
 
-                <Segment>
-                    <h4>Validate by QR Payload Text</h4>
-                    <Form onSubmit={this.onValidateByQrPayload} error={!!this.state.errorMessage}>
-                    <Form.TextArea
-                        rows={8}
-                        value={this.state.qrPayload}
-                        onChange={(event) => this.setState({ qrPayload: event.target.value })}
-                        placeholder="Paste QR JSON payload here"
-                    />
-                    <Button primary loading={this.state.loading}>
-                        Validate QR Payload
-                    </Button>
-                    <Message error header="Validation failed" content={this.state.errorMessage} />
-                </Form>
-                </Segment>
+                        <article className="workflow-card">
+                            <span className="section-kicker">Method 2</span>
+                            <h3>Validate by QR Image Upload</h3>
+                            <Form>
+                                <Form.Input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={this.onUploadQrImage}
+                                    label="Upload QR image"
+                                />
+                            </Form>
+                            {this.state.decodedQrText ? (
+                                <p className="decoded-copy">Decoded QR payload: {this.state.decodedQrText}</p>
+                            ) : null}
+                        </article>
 
-                {this.state.successMessage && (
-                    <Segment color="green" style={{ marginTop: '12px' }}>
-                        <Icon color="green" name="check circle" />
-                        {this.state.successMessage}
-                    </Segment>
-                )}
+                        <article className="workflow-card workflow-card-wide">
+                            <span className="section-kicker">Method 3</span>
+                            <h3>Validate by QR Payload Text</h3>
+                            <Form onSubmit={this.onValidateByQrPayload}>
+                                <Form.TextArea
+                                    rows={8}
+                                    value={this.state.qrPayload}
+                                    onChange={(event) => this.setState({ qrPayload: event.target.value })}
+                                    placeholder="Paste QR JSON payload here"
+                                />
+                                <Button primary loading={this.state.loading} className="tm-btn">
+                                    Validate QR Payload
+                                </Button>
+                            </Form>
+                        </article>
+                    </section>
+                </div>
+                <style jsx>{`
+                    .tm-validate-page {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 16px;
+                        font-family: 'Nunito Sans', sans-serif;
+                    }
+                    .hero-panel {
+                        display: grid;
+                        grid-template-columns: 1.2fr 0.8fr;
+                        gap: 16px;
+                        padding: 24px;
+                        border-radius: 24px;
+                        background:
+                            radial-gradient(circle at top right, rgba(0, 185, 242, 0.24), transparent 30%),
+                            linear-gradient(125deg, #00112c 0%, #002d72 55%, #026cdf 100%);
+                        color: white;
+                        box-shadow: 0 22px 42px rgba(0, 32, 96, 0.2);
+                    }
+                    .hero-kicker {
+                        display: inline-block;
+                        margin-bottom: 8px;
+                        font-size: 0.72rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.11em;
+                        color: #7dd3fc;
+                        font-weight: 800;
+                    }
+                    .hero-copy h1 {
+                        margin: 0;
+                        font-family: 'Barlow Condensed', sans-serif;
+                        font-size: 2.1rem;
+                        letter-spacing: 0.03em;
+                    }
+                    .hero-subtitle {
+                        margin: 8px 0 0;
+                        color: #dbeafe;
+                        max-width: 680px;
+                        line-height: 1.5;
+                    }
+                    .hero-meta {
+                        margin-top: 14px;
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 8px;
+                    }
+                    .meta-pill {
+                        border-radius: 999px;
+                        border: 1px solid rgba(191, 219, 254, 0.45);
+                        background: rgba(15, 23, 42, 0.28);
+                        padding: 6px 12px;
+                        font-size: 0.76rem;
+                        font-weight: 700;
+                    }
+                    .hero-side {
+                        border-radius: 18px;
+                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        background: rgba(2, 23, 60, 0.42);
+                        padding: 16px;
+                    }
+                    .side-label {
+                        margin: 0;
+                        font-size: 0.74rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.08em;
+                        color: #bae6fd;
+                        font-weight: 700;
+                    }
+                    .hero-side h2 {
+                        margin: 8px 0 6px;
+                        font-family: 'Barlow Condensed', sans-serif;
+                        font-size: 2rem;
+                    }
+                    .side-copy {
+                        margin: 0;
+                        color: #dbeafe;
+                        line-height: 1.5;
+                        font-size: 0.9rem;
+                    }
+                    .workflow-grid {
+                        display: grid;
+                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                        gap: 14px;
+                    }
+                    .workflow-card {
+                        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+                        border: 1px solid #dbeafe;
+                        border-radius: 18px;
+                        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+                        padding: 16px;
+                    }
+                    .workflow-card-wide {
+                        grid-column: span 2;
+                    }
+                    .section-kicker {
+                        display: inline-block;
+                        margin-bottom: 8px;
+                        color: #2563eb;
+                        font-size: 0.72rem;
+                        font-weight: 800;
+                        text-transform: uppercase;
+                        letter-spacing: 0.11em;
+                    }
+                    .workflow-card h3 {
+                        margin: 0 0 12px;
+                        color: #0f172a;
+                        font-family: 'Barlow Condensed', sans-serif;
+                        font-size: 1.5rem;
+                        letter-spacing: 0.03em;
+                    }
+                    :global(.workflow-card .ui.form .field > label) {
+                        color: #334155;
+                        font-weight: 700;
+                    }
+                    :global(.workflow-card .ui.form textarea),
+                    :global(.workflow-card .ui.form input[type="text"]),
+                    :global(.workflow-card .ui.form input[type="file"]) {
+                        border-radius: 12px !important;
+                        border: 1px solid #cbd5e1 !important;
+                    }
+                    :global(.tm-btn.ui.button) {
+                        border-radius: 999px !important;
+                        background: #026cdf !important;
+                        font-weight: 800 !important;
+                        letter-spacing: 0.04em;
+                        margin-top: 6px;
+                    }
+                    .decoded-copy {
+                        margin: 10px 0 0;
+                        color: #334155;
+                        font-size: 0.82rem;
+                        line-height: 1.45;
+                        word-break: break-word;
+                    }
+                    .mono {
+                        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                        word-break: break-all;
+                    }
+                    @media (max-width: 860px) {
+                        .hero-panel {
+                            grid-template-columns: 1fr;
+                        }
+                        .workflow-grid {
+                            grid-template-columns: 1fr;
+                        }
+                        .workflow-card-wide {
+                            grid-column: span 1;
+                        }
+                    }
+                `}</style>
             </Layout>
         );
     }

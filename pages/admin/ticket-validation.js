@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { Button, Message } from 'semantic-ui-react';
 import { contractAddress, getDeployedEventsInstance } from '../../ethereum/factory';
+import Event from '../../ethereum/event';
 import AdminShell from '../../components/adminShell';
 import { Link } from '../../routes';
 
@@ -10,7 +11,16 @@ class TicketValidationPage extends Component {
             return { events: [], loadError: 'Set NEXT_PUBLIC_DIAMOND_ADDRESS in .env to load deployed events.' };
         }
         try {
-            const events = await getDeployedEventsInstance.methods.getDeployedEvents().call();
+            const addresses = await getDeployedEventsInstance.methods.getDeployedEvents().call();
+            const events = await Promise.all(addresses.map(async (address) => {
+                const event = Event(address);
+                const details = await event.methods.getEventDetails().call();
+                return {
+                    address,
+                    name: details[0] || 'Unnamed Event',
+                    description: details[4] || ''
+                };
+            }));
             return { events, loadError: '' };
         } catch (error) {
             return { events: [], loadError: 'Unable to load events from blockchain right now.' };
@@ -36,10 +46,14 @@ class TicketValidationPage extends Component {
                 <div className="panel">
                     <h3>Event Validation Links</h3>
                     <ul className="validation-list">
-                        {this.props.events.map((address) => (
-                            <li key={address}>
-                                <span className="mono">{address}</span>
-                                <Link route={`/events/${address}/validate`} legacyBehavior>
+                        {this.props.events.map((event) => (
+                            <li key={event.address}>
+                                <div className="event-copy">
+                                    <p className="event-name">{event.name}</p>
+                                    {event.description ? <p className="event-description">{event.description}</p> : null}
+                                    <span className="mono">{event.address}</span>
+                                </div>
+                                <Link route={`/events/${event.address}/validate`} legacyBehavior>
                                     <a><Button size="tiny" primary>Validate QR</Button></a>
                                 </Link>
                             </li>
@@ -55,16 +69,34 @@ class TicketValidationPage extends Component {
                         box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
                     }
                     .validation-list { list-style: none; padding: 0; margin: 0; }
-                    .validation-list li {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        border-bottom: 1px solid #e2e8f0;
-                        padding: 10px 0;
-                        gap: 8px;
-                    }
-                    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; word-break: break-word; }
-                `}</style>
+                     .validation-list li {
+                         display: flex;
+                         justify-content: space-between;
+                         align-items: flex-start;
+                         border-bottom: 1px solid #e2e8f0;
+                         padding: 10px 0;
+                         gap: 12px;
+                     }
+                     .event-copy {
+                         display: flex;
+                         flex-direction: column;
+                         gap: 4px;
+                         min-width: 0;
+                     }
+                     .event-name {
+                         margin: 0;
+                         color: #0f172a;
+                         font-weight: 800;
+                         font-size: 0.95rem;
+                     }
+                     .event-description {
+                         margin: 0;
+                         color: #475569;
+                         font-size: 0.82rem;
+                         line-height: 1.45;
+                     }
+                     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; word-break: break-word; }
+                 `}</style>
             </AdminShell>
         );
     }

@@ -6,7 +6,7 @@
  * or disable the default devtool with "devtool: false".
  * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
  */
-(self["webpackChunk_N_E"] = self["webpackChunk_N_E"] || []).push([["pages/events/owners/validateTicket"],{
+self["webpackHotUpdate_N_E"]("pages/events/owners/validateTicket",{
 
 /***/ "./node_modules/@ethereumjs/rlp/dist/index.js":
 /*!****************************************************!*\
@@ -1428,16 +1428,6 @@ eval(__webpack_require__.ts("/**\n * Expose `pathToRegexp`.\n */\nmodule.exports
 
 "use strict";
 eval(__webpack_require__.ts("\nvar assign = Object.assign.bind(Object);\nmodule.exports = assign;\nmodule.exports[\"default\"] = module.exports;\n\n//# sourceMappingURL=object-assign.js.map//# sourceURL=[module]\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiLi9ub2RlX21vZHVsZXMvbmV4dC9kaXN0L2J1aWxkL3BvbHlmaWxscy9vYmplY3QtYXNzaWduLmpzIiwibWFwcGluZ3MiOiJBQUFhO0FBQ2I7QUFDQTtBQUNBLHlCQUFzQjs7QUFFdEIiLCJzb3VyY2VzIjpbIndlYnBhY2s6Ly9fTl9FLy4vbm9kZV9tb2R1bGVzL25leHQvZGlzdC9idWlsZC9wb2x5ZmlsbHMvb2JqZWN0LWFzc2lnbi5qcz9lN2QxIl0sInNvdXJjZXNDb250ZW50IjpbIlwidXNlIHN0cmljdFwiO1xudmFyIGFzc2lnbiA9IE9iamVjdC5hc3NpZ24uYmluZChPYmplY3QpO1xubW9kdWxlLmV4cG9ydHMgPSBhc3NpZ247XG5tb2R1bGUuZXhwb3J0cy5kZWZhdWx0ID0gbW9kdWxlLmV4cG9ydHM7XG5cbi8vIyBzb3VyY2VNYXBwaW5nVVJMPW9iamVjdC1hc3NpZ24uanMubWFwIl0sIm5hbWVzIjpbXSwic291cmNlUm9vdCI6IiJ9\n//# sourceURL=webpack-internal:///./node_modules/next/dist/build/polyfills/object-assign.js\n"));
-
-/***/ }),
-
-/***/ "./node_modules/next/dist/build/webpack/loaders/next-client-pages-loader.js?absolutePagePath=C%3A%5CSum%5CCPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)%5CFinal%20Project%5CEventCoin%20DApp%5Cpages%5Cevents%5Cowners%5CvalidateTicket.js&page=%2Fevents%2Fowners%2FvalidateTicket!":
-/*!*******************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
-  !*** ./node_modules/next/dist/build/webpack/loaders/next-client-pages-loader.js?absolutePagePath=C%3A%5CSum%5CCPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)%5CFinal%20Project%5CEventCoin%20DApp%5Cpages%5Cevents%5Cowners%5CvalidateTicket.js&page=%2Fevents%2Fowners%2FvalidateTicket! ***!
-  \*******************************************************************************************************************************************************************************************************************************************************************************************************************************************/
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
-
-eval(__webpack_require__.ts("\n    (window.__NEXT_P = window.__NEXT_P || []).push([\n      \"/events/owners/validateTicket\",\n      function () {\n        return __webpack_require__(/*! ./pages/events/owners/validateTicket.js */ \"./pages/events/owners/validateTicket.js\");\n      }\n    ]);\n    if(true) {\n      module.hot.dispose(function () {\n        window.__NEXT_P.push([\"/events/owners/validateTicket\"])\n      });\n    }\n  //# sourceURL=[module]\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiLi9ub2RlX21vZHVsZXMvbmV4dC9kaXN0L2J1aWxkL3dlYnBhY2svbG9hZGVycy9uZXh0LWNsaWVudC1wYWdlcy1sb2FkZXIuanM/YWJzb2x1dGVQYWdlUGF0aD1DJTNBJTVDU3VtJTVDQ1BTQyUyMDU1OSUyMC0lMjBBZHZhbmNlJTIwQmxvY2tjaGFpbiUyMFRlY2hub2xvZ2llcyUyME1pZCUyMFRlcm0lMjBQcm9qZWN0JTIwKFN1bWl0JTIwU2luZ2gpJTVDRmluYWwlMjBQcm9qZWN0JTVDRXZlbnRDb2luJTIwREFwcCU1Q3BhZ2VzJTVDZXZlbnRzJTVDb3duZXJzJTVDdmFsaWRhdGVUaWNrZXQuanMmcGFnZT0lMkZldmVudHMlMkZvd25lcnMlMkZ2YWxpZGF0ZVRpY2tldCEiLCJtYXBwaW5ncyI6IjtBQUNBO0FBQ0E7QUFDQTtBQUNBLGVBQWUsbUJBQU8sQ0FBQyx3RkFBeUM7QUFDaEU7QUFDQTtBQUNBLE9BQU8sSUFBVTtBQUNqQixNQUFNLFVBQVU7QUFDaEI7QUFDQSxPQUFPO0FBQ1A7QUFDQSIsInNvdXJjZXMiOlsid2VicGFjazovL19OX0UvP2EyZGUiXSwic291cmNlc0NvbnRlbnQiOlsiXG4gICAgKHdpbmRvdy5fX05FWFRfUCA9IHdpbmRvdy5fX05FWFRfUCB8fCBbXSkucHVzaChbXG4gICAgICBcIi9ldmVudHMvb3duZXJzL3ZhbGlkYXRlVGlja2V0XCIsXG4gICAgICBmdW5jdGlvbiAoKSB7XG4gICAgICAgIHJldHVybiByZXF1aXJlKFwiLi9wYWdlcy9ldmVudHMvb3duZXJzL3ZhbGlkYXRlVGlja2V0LmpzXCIpO1xuICAgICAgfVxuICAgIF0pO1xuICAgIGlmKG1vZHVsZS5ob3QpIHtcbiAgICAgIG1vZHVsZS5ob3QuZGlzcG9zZShmdW5jdGlvbiAoKSB7XG4gICAgICAgIHdpbmRvdy5fX05FWFRfUC5wdXNoKFtcIi9ldmVudHMvb3duZXJzL3ZhbGlkYXRlVGlja2V0XCJdKVxuICAgICAgfSk7XG4gICAgfVxuICAiXSwibmFtZXMiOltdLCJzb3VyY2VSb290IjoiIn0=\n//# sourceURL=webpack-internal:///./node_modules/next/dist/build/webpack/loaders/next-client-pages-loader.js?absolutePagePath=C%3A%5CSum%5CCPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)%5CFinal%20Project%5CEventCoin%20DApp%5Cpages%5Cevents%5Cowners%5CvalidateTicket.js&page=%2Fevents%2Fowners%2FvalidateTicket!\n"));
 
 /***/ }),
 
@@ -14311,11 +14301,4 @@ module.exports = /*#__PURE__*/JSON.parse('{"contractName":"Event","abi":[{"input
 
 /***/ })
 
-},
-/******/ function(__webpack_require__) { // webpackRuntimeModules
-/******/ var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId); }
-/******/ __webpack_require__.O(0, ["pages/_app","main"], function() { return __webpack_exec__("./node_modules/next/dist/build/webpack/loaders/next-client-pages-loader.js?absolutePagePath=C%3A%5CSum%5CCPSC%20559%20-%20Advance%20Blockchain%20Technologies%20Mid%20Term%20Project%20(Sumit%20Singh)%5CFinal%20Project%5CEventCoin%20DApp%5Cpages%5Cevents%5Cowners%5CvalidateTicket.js&page=%2Fevents%2Fowners%2FvalidateTicket!"); });
-/******/ var __webpack_exports__ = __webpack_require__.O();
-/******/ _N_E = __webpack_exports__;
-/******/ }
-]);
+});
