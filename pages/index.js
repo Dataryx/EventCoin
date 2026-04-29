@@ -1,94 +1,227 @@
 import React, { Component } from 'react';
-import { Card, Button, Icon, Segment, Header, Grid, List } from 'semantic-ui-react';
+import { Button, Icon } from 'semantic-ui-react';
 import Layout from '../components/layout';
 import { Link } from '../routes';
 
 class LoginPortal extends Component {
     render() {
-        const items = [
-            {
-                header: 'Admin Portal',
-                description: (
-                    <div>
-                        <p>Create events, manage tickets, and validate QR tickets.</p>
-                        <Link route="/admin/login" legacyBehavior>
-                            <a>
-                                <Button primary icon labelPosition="left">
-                                    <Icon name="user secret" />
-                                    Login as Admin
-                                </Button>
-                            </a>
-                        </Link>
-                    </div>
-                )
-            },
-            {
-                header: 'Client Portal',
-                description: (
-                    <div>
-                        <p>Explore events, purchase tickets, and view QR tickets instantly.</p>
-                        <Link route="/client/login" legacyBehavior>
-                            <a>
-                                <Button color="teal" icon labelPosition="left">
-                                    <Icon name="user" />
-                                    Login as Client
-                                </Button>
-                            </a>
-                        </Link>
-                    </div>
-                )
-            }
-        ];
-
         return (
             <Layout>
-                <Segment
-                    padded="very"
-                    style={{
-                        borderRadius: '18px',
-                        border: '1px solid #1e293b',
-                        boxShadow: '0 10px 28px rgba(30, 41, 59, 0.18)',
-                        backgroundImage:
-                            "linear-gradient(95deg, rgba(15, 23, 42, 0.88), rgba(30, 27, 75, 0.68)), url('https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1600&q=80')",
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        color: '#f8fafc'
-                    }}
-                >
-                    <Grid stackable columns={2} verticalAlign="middle">
-                        <Grid.Column>
-                            <Header as="h1" style={{ fontSize: '2.2rem', marginBottom: '10px' }}>
-                                EventCoin Commerce Hub
-                            </Header>
-                            <p style={{ color: '#cbd5e1', fontSize: '1.05rem' }}>
+                <div className="tm-hub-page">
+                    <section className="hero-panel">
+                        <div className="hero-copy">
+                            <h1>EventCoin Commerce Hub</h1>
+                            <p className="hero-description">
                                 A full event ticketing commerce platform with role-based portals, checkout, QR tickets, and validation.
                             </p>
-                            <List bulleted>
-                                <List.Item>Modern client storefront with checkout flow</List.Item>
-                                <List.Item>Admin command center for event operations</List.Item>
-                                <List.Item>QR-based ticket issuance and validation</List.Item>
-                            </List>
-                        </Grid.Column>
-                        <Grid.Column>
-                            <Segment color="violet" secondary>
-                                <Header as="h4">Quick Start</Header>
-                                <p>Select your role below to enter your dedicated portal.</p>
-                            </Segment>
-                        </Grid.Column>
-                    </Grid>
-                </Segment>
-                <Card.Group itemsPerRow={2} stackable>
-                {items.map((item) => (
-                    <Card key={item.header} style={{ borderRadius: '16px' }}>
-                            <Card.Content>
-                                <Card.Header>{item.header}</Card.Header>
-                                <Card.Description style={{ marginTop: '12px' }}>
-                                    {item.description}
-                                </Card.Description>
-                            </Card.Content>
-                        </Card>
-                    ))}
-                </Card.Group>
+                            <div className="hero-tags">
+                                <span className="tag">CLIENT CHECKOUT</span>
+                                <span className="tag">ADMIN OPS</span>
+                                <span className="tag">QR VALIDATION</span>
+                            </div>
+                        </div>
+                        <div className="hero-side-card">
+                            <p className="side-kicker">Quick Start</p>
+                            <h3>Choose a Portal</h3>
+                            <p>Select your role below to enter your dedicated Ticketmaster-inspired experience.</p>
+                            <div className="side-list">
+                                <span><Icon name="check circle" /> Secure wallet-based access</span>
+                                <span><Icon name="check circle" /> Live event inventory</span>
+                                <span><Icon name="check circle" /> Instant QR workflows</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="portal-grid">
+                        <article className="portal-card">
+                            <div className="card-head">
+                                <span className="pill admin">Admin</span>
+                                <h3>Admin Portal</h3>
+                            </div>
+                            <p>Create events, manage tickets, and validate QR tickets from an operations-focused dashboard.</p>
+                            <Link route="/admin/login" legacyBehavior>
+                                <a>
+                                    <Button primary icon labelPosition="left" className="tm-btn">
+                                        <Icon name="user secret" />
+                                        Login as Admin
+                                    </Button>
+                                </a>
+                            </Link>
+                        </article>
+
+                        <article className="portal-card">
+                            <div className="card-head">
+                                <span className="pill client">Client</span>
+                                <h3>Client Portal</h3>
+                            </div>
+                            <p>Explore events, purchase tickets, and view QR tickets instantly with a modern storefront flow.</p>
+                            <Link route="/client/login" legacyBehavior>
+                                <a>
+                                    <Button color="teal" icon labelPosition="left" className="tm-btn client-btn">
+                                        <Icon name="user" />
+                                        Login as Client
+                                    </Button>
+                                </a>
+                            </Link>
+                        </article>
+                    </section>
+                </div>
+                <style jsx>{`
+                    .tm-hub-page {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 16px;
+                        font-family: 'Nunito Sans', sans-serif;
+                    }
+                    .hero-panel {
+                        display: grid;
+                        grid-template-columns: 1.2fr 0.8fr;
+                        gap: 16px;
+                        padding: 26px;
+                        border-radius: 24px;
+                        background:
+                            radial-gradient(circle at top right, rgba(0, 185, 242, 0.24), transparent 30%),
+                            linear-gradient(125deg, #00112c 0%, #002d72 55%, #026cdf 100%);
+                        color: white;
+                        box-shadow: 0 24px 48px rgba(0, 32, 96, 0.22);
+                    }
+                    .kicker {
+                        display: inline-block;
+                        margin-bottom: 8px;
+                        color: #7dd3fc;
+                        font-size: 0.74rem;
+                        font-weight: 800;
+                        letter-spacing: 0.12em;
+                        text-transform: uppercase;
+                    }
+                    .hero-copy h1 {
+                        margin: 0;
+                        font-family: 'Barlow Condensed', sans-serif;
+                        font-size: 3rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.03em;
+                    }
+                    .hero-description {
+                        margin: 12px 0 14px;
+                        color: #dbeafe;
+                        line-height: 1.7;
+                        font-size: 1rem;
+                        max-width: 620px;
+                    }
+                    .hero-tags {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 8px;
+                    }
+                    .tag {
+                        border-radius: 999px;
+                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        background: rgba(255, 255, 255, 0.12);
+                        padding: 6px 12px;
+                        font-size: 0.72rem;
+                        font-weight: 800;
+                        letter-spacing: 0.06em;
+                    }
+                    .hero-side-card {
+                        border-radius: 18px;
+                        border: 1px solid rgba(255, 255, 255, 0.18);
+                        background: rgba(2, 23, 60, 0.45);
+                        padding: 16px;
+                    }
+                    .side-kicker {
+                        margin: 0 0 6px;
+                        color: #bae6fd;
+                        font-size: 0.72rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.1em;
+                        font-weight: 700;
+                    }
+                    .hero-side-card h3 {
+                        margin: 0 0 8px;
+                        font-family: 'Barlow Condensed', sans-serif;
+                        font-size: 2rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.03em;
+                    }
+                    .hero-side-card p {
+                        margin: 0;
+                        color: #dbeafe;
+                        line-height: 1.6;
+                    }
+                    .side-list {
+                        margin-top: 14px;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 8px;
+                        font-size: 0.86rem;
+                        color: #e0f2fe;
+                    }
+                    .portal-grid {
+                        display: grid;
+                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                        gap: 14px;
+                    }
+                    .portal-card {
+                        padding: 18px;
+                        border-radius: 20px;
+                        border: 1px solid #dbeafe;
+                        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+                        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+                        display: flex;
+                        flex-direction: column;
+                        gap: 12px;
+                    }
+                    .card-head h3 {
+                        margin: 8px 0 0;
+                        color: #0f172a;
+                        font-family: 'Barlow Condensed', sans-serif;
+                        font-size: 2rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.03em;
+                    }
+                    .portal-card p {
+                        margin: 0;
+                        color: #475569;
+                        line-height: 1.6;
+                    }
+                    .pill {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        border-radius: 999px;
+                        padding: 5px 10px;
+                        font-size: 0.72rem;
+                        font-weight: 800;
+                        text-transform: uppercase;
+                        letter-spacing: 0.06em;
+                    }
+                    .pill.admin {
+                        background: #dbeafe;
+                        color: #1d4ed8;
+                    }
+                    .pill.client {
+                        background: #ccfbf1;
+                        color: #0f766e;
+                    }
+                    :global(.tm-btn.ui.button) {
+                        border-radius: 999px !important;
+                        font-weight: 800 !important;
+                        letter-spacing: 0.04em;
+                        margin-top: 4px;
+                    }
+                    :global(.client-btn.ui.button) {
+                        background: #14b8a6 !important;
+                    }
+                    @media (max-width: 900px) {
+                        .hero-panel,
+                        .portal-grid {
+                            grid-template-columns: 1fr;
+                        }
+                        .hero-copy h1 {
+                            font-size: 2.3rem;
+                        }
+                    }
+                `}</style>
             </Layout>
         );
     }

@@ -6,6 +6,7 @@ routes
     .add('/admin/dashboard', '/admin/dashboard')
     .add('/admin/events', '/admin/events')
     .add('/admin/ticket-validation', '/admin/ticket-validation')
+    .add('/admin/clients', '/admin/clients')
     .add('/admin/revenue', '/admin/revenue')
     .add('/admin/payouts', '/admin/payouts')
     .add('/admin/invoices', '/admin/invoices')

@@ -9,7 +9,8 @@ const navSections = [
         items: [
             { label: 'Dashboard', route: '/admin/dashboard' },
             { label: 'Events', route: '/admin/events' },
-            { label: 'Ticket Validation', route: '/admin/ticket-validation' }
+            { label: 'Ticket Validation', route: '/admin/ticket-validation' },
+            { label: 'Clients', route: '/admin/clients' }
         ]
     },
     {
