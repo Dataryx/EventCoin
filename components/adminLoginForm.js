@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { Button, Form, Message } from 'semantic-ui-react';
 import { Router } from '../routes';
+import { persistAuditLog } from '../ethereum/auditLog';
 
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'admin@123';
@@ -20,6 +21,20 @@ class AdminLoginForm extends Component {
         const { username, password } = this.state;
 
         if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+            if (typeof window !== 'undefined') {
+                persistAuditLog({
+                    actorName: username.trim() || 'Unknown admin',
+                    actorRole: 'admin',
+                    actorId: username.trim().toLowerCase(),
+                    action: 'Admin login',
+                    status: 'failed',
+                    entityType: 'session',
+                    entityId: 'admin',
+                    route: '/admin/login',
+                    details: { reason: 'Invalid admin username or password.' }
+                });
+            }
+
             this.setState({
                 loading: false,
                 errorMessage: 'Invalid admin username or password.'
@@ -30,6 +45,16 @@ class AdminLoginForm extends Component {
         if (typeof window !== 'undefined') {
             window.localStorage.setItem('adminAccount', ADMIN_USERNAME);
             window.localStorage.setItem('adminAuthenticated', 'true');
+            persistAuditLog({
+                actorName: ADMIN_USERNAME,
+                actorRole: 'admin',
+                actorId: ADMIN_USERNAME,
+                action: 'Admin login',
+                status: 'success',
+                entityType: 'session',
+                entityId: 'admin',
+                route: '/admin/login'
+            });
         }
 
         if (this.props.onSuccess) {

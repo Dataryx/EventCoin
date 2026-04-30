@@ -4,6 +4,7 @@ import Layout from '../../components/layout';
 import { contractAddress, createEventInstance } from '../../ethereum/factory';
 import web3 from '../../ethereum/web3';
 import { Router } from '../../routes';
+import { persistAuditLog } from '../../ethereum/auditLog';
 
 class EventNew extends Component {
     state = {
@@ -30,6 +31,24 @@ class EventNew extends Component {
         }
 
         return message;
+    };
+
+    logEventAudit = ({ status, details = {}, entityId = '' }) => {
+        const adminAccount = typeof window !== 'undefined'
+            ? (window.localStorage.getItem('adminAccount') || 'Admin')
+            : 'Admin';
+
+        persistAuditLog({
+            actorName: adminAccount,
+            actorRole: 'admin',
+            actorId: adminAccount,
+            action: 'Event creation',
+            status,
+            entityType: 'event',
+            entityId,
+            route: '/events/new',
+            details
+        });
     };
 
     onSubmit = async (event) =>  {
@@ -146,6 +165,18 @@ class EventNew extends Component {
                 successMessage,
                 statusMessage: 'Event created successfully. Redirecting to the admin events board.'
             });
+            this.logEventAudit({
+                status: 'success',
+                entityId: createdEventAddress || this.state.eventName,
+                details: {
+                    eventName: this.state.eventName,
+                    eventDate: this.state.eventDate,
+                    ticketPrice,
+                    ticketSupply,
+                    managerWallet: accounts[0],
+                    eventAddress: createdEventAddress || ''
+                }
+            });
             Router.pushRoute(`/admin/events?successMessage=${encodeURIComponent(successMessage)}`);
         } catch (err) {
             let friendlyError = this.formatCreateEventError(err);
@@ -155,6 +186,17 @@ class EventNew extends Component {
             if (friendlyError.toLowerCase().includes('exceeds block gas limit')) {
                 friendlyError = 'Transaction gas exceeds current network block limit. Reduce ticket supply and retry (try 50-200 first), or increase Ganache block gas limit.';
             }
+            this.logEventAudit({
+                status: 'failed',
+                entityId: this.state.eventName || 'draft-event',
+                details: {
+                    eventName: this.state.eventName,
+                    eventDate: this.state.eventDate,
+                    ticketPrice: this.state.ticketPrice,
+                    ticketSupply: this.state.ticketSupply,
+                    reason: friendlyError
+                }
+            });
             this.setState({ errorMessage: friendlyError, statusMessage: '' });
         }
         this.setState({loading:false});

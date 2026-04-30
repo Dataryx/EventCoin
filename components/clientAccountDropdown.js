@@ -1,7 +1,8 @@
 import React from 'react';
 import { Dropdown, Icon } from 'semantic-ui-react';
 import { Router } from '../routes';
-import { clearClientSession } from '../ethereum/clientSession';
+import { clearClientSession, getClientSession } from '../ethereum/clientSession';
+import { persistAuditLog } from '../ethereum/auditLog';
 
 const ClientAccountDropdown = ({ clientAccount, clientWallet, inverted = false }) => {
     const accountLabel = clientAccount || 'Client Account';
@@ -12,6 +13,21 @@ const ClientAccountDropdown = ({ clientAccount, clientWallet, inverted = false }
     };
 
     const handleLogout = () => {
+        const session = getClientSession();
+        const profile = session.clientProfile || {};
+
+        persistAuditLog({
+            actorName: profile.name || profile.username || profile.email || session.clientAccount || 'Client',
+            actorRole: 'client',
+            actorId: session.clientId || session.clientIdentity || session.clientAccount || '',
+            walletAddress: session.clientWallet || '',
+            action: 'Client logout',
+            status: 'success',
+            entityType: 'session',
+            entityId: session.clientId || '',
+            route: '/client/dashboard'
+        });
+
         clearClientSession();
         Router.pushRoute('/client/login');
     };

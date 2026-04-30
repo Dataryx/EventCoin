@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { Button, Form, Message, Icon } from 'semantic-ui-react';
 import Layout from '../../components/layout';
 import { Router } from '../../routes';
+import { persistAuditLog } from '../../ethereum/auditLog';
 
 class ClientLogin extends Component {
     state = {
@@ -33,6 +34,27 @@ class ClientLogin extends Component {
     };
 
     normalizeIdentity = (value) => (value || '').trim().toLowerCase();
+
+    logClientAudit = ({ action, status, client = {}, identity = '', details = {} }) => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        const actorName = client.name || client.username || client.email || identity || 'Unknown client';
+        const actorId = client.id || client.username || client.email || identity || actorName;
+
+        persistAuditLog({
+            actorName,
+            actorRole: 'client',
+            actorId,
+            action,
+            status,
+            entityType: 'client',
+            entityId: client.id || '',
+            route: '/client/login',
+            details
+        });
+    };
 
     onLogin = async (event) => {
         event.preventDefault();
@@ -74,8 +96,24 @@ class ClientLogin extends Component {
                 username: currentClient.username,
                 email: currentClient.email
             }));
+            this.logClientAudit({
+                action: 'Client login',
+                status: 'success',
+                client: currentClient,
+                identity,
+                details: {
+                    username: currentClient.username,
+                    email: currentClient.email
+                }
+            });
             Router.pushRoute('/client/dashboard');
         } catch (err) {
+            this.logClientAudit({
+                action: 'Client login',
+                status: 'failed',
+                identity: this.normalizeIdentity(this.state.loginIdentity),
+                details: { reason: err.message }
+            });
             this.setState({ errorMessage: err.message });
         }
 
@@ -131,6 +169,18 @@ class ClientLogin extends Component {
             ];
             this.persistClients(nextClients);
 
+            const newClient = nextClients[nextClients.length - 1];
+            this.logClientAudit({
+                action: 'Client registration',
+                status: 'success',
+                client: newClient,
+                identity: this.normalizeIdentity(username),
+                details: {
+                    username: newClient.username,
+                    email: newClient.email
+                }
+            });
+
             this.setState({
                 successMessage: 'Registration successful. You can now login with email or username.',
                 loginIdentity: username,
@@ -142,6 +192,12 @@ class ClientLogin extends Component {
                 registerConfirmPassword: ''
             });
         } catch (err) {
+            this.logClientAudit({
+                action: 'Client registration',
+                status: 'failed',
+                identity: this.normalizeIdentity(this.state.registerUsername || this.state.registerEmail),
+                details: { reason: err.message }
+            });
             this.setState({ errorMessage: err.message });
         }
 

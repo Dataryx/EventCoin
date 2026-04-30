@@ -4,6 +4,7 @@ import Layout from '../../../components/layout';
 import Event from '../../../ethereum/event';
 import web3 from '../../../ethereum/web3';
 import { Router } from '../../../routes';
+import { persistAuditLog } from '../../../ethereum/auditLog';
 
 class EventNew extends Component {
     static async getInitialProps(props) {
@@ -17,6 +18,27 @@ class EventNew extends Component {
         errorMessage: '',
         statusMessage: '',
         loading: false
+    };
+
+    logAdminAudit = ({ status, entityId = '', details = {} }) => {
+        const adminAccount = typeof window !== 'undefined'
+            ? (window.localStorage.getItem('adminAccount') || 'Admin')
+            : 'Admin';
+
+        persistAuditLog({
+            actorName: adminAccount,
+            actorRole: 'admin',
+            actorId: adminAccount,
+            action: 'Ticket use',
+            status,
+            entityType: 'ticket',
+            entityId: entityId ? entityId.toString() : '',
+            route: `/events/${this.props.contractAddress}/owners/useTicket`,
+            details: {
+                eventAddress: this.props.contractAddress,
+                ...details
+            }
+        });
     };
 
     formatUseTicketError = (error) => {
@@ -64,10 +86,25 @@ class EventNew extends Component {
 
             const useEvent = result.events.TicketUsed;
             const successMessage = `Ticket used successfully! Ticket ID: ${useEvent.returnValues.ticketId}`;
+            this.logAdminAudit({
+                status: 'success',
+                entityId: useEvent.returnValues.ticketId,
+                details: {
+                    walletUsed: accounts[0]
+                }
+            });
 
             Router.pushRoute(`/events/${this.props.contractAddress}?successMessage=${encodeURIComponent(successMessage)}`);
         } catch (err) {
-            this.setState({ errorMessage: this.formatUseTicketError(err), statusMessage: '' });
+            const friendlyError = this.formatUseTicketError(err);
+            this.logAdminAudit({
+                status: 'failed',
+                entityId: this.state.ticketId.trim(),
+                details: {
+                    reason: friendlyError
+                }
+            });
+            this.setState({ errorMessage: friendlyError, statusMessage: '' });
         }
         this.setState({ loading: false });
     };

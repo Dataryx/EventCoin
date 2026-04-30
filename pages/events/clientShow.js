@@ -8,6 +8,7 @@ import { reconcileClientTicketsForEvent } from '../../ethereum/clientTickets';
 import { persistClientTransaction } from '../../ethereum/clientTransactions';
 import TicketBarcode from '../../components/ticketBarcode';
 import { createTicketBarcodeValue } from '../../ethereum/ticketBarcode';
+import { persistAuditLog } from '../../ethereum/auditLog';
 
 class ClientEventShow extends Component {
     static async getInitialProps(props) {
@@ -81,6 +82,24 @@ class ClientEventShow extends Component {
         }
 
         return rawMessage;
+    };
+
+    logClientAudit = ({ action, status, entityType = 'event', entityId = '', details = {} }) => {
+        const session = getClientSession();
+        const profile = session.clientProfile || {};
+
+        persistAuditLog({
+            actorName: profile.name || profile.username || profile.email || session.clientAccount || 'Client',
+            actorRole: 'client',
+            actorId: session.clientId || session.clientIdentity || session.clientAccount || '',
+            walletAddress: session.clientWallet || '',
+            action,
+            status,
+            entityType,
+            entityId: entityId || this.props.contractAddress,
+            route: `/events/${this.props.contractAddress}`,
+            details
+        });
     };
 
     handleCheckout = async () => {
@@ -165,6 +184,16 @@ class ClientEventShow extends Component {
             const nextTickets = [...newTickets, ...this.state.purchasedTickets];
             this.persistTickets(nextTickets);
             window.localStorage.setItem('clientWallet', buyerAddress);
+            this.logClientAudit({
+                action: 'Ticket purchase',
+                status: 'success',
+                details: {
+                    eventName: this.props.name,
+                    quantity: cartQuantity,
+                    ticketIds: newTickets.map((ticket) => ticket.ticketId).join(', '),
+                    walletAddress: buyerAddress
+                }
+            });
 
             this.setState({
                 successMessage: `Checkout successful! Purchased ${cartQuantity} ticket(s).`,
@@ -174,8 +203,18 @@ class ClientEventShow extends Component {
                 cartQuantity: 0
             });
         } catch (err) {
+            const friendlyError = this.formatCheckoutError(err);
+            this.logClientAudit({
+                action: 'Ticket purchase',
+                status: 'failed',
+                details: {
+                    eventName: this.props.name,
+                    quantity: cartQuantity,
+                    reason: friendlyError
+                }
+            });
             this.setState({
-                errorMessage: this.formatCheckoutError(err),
+                errorMessage: friendlyError,
                 statusMessage: '',
                 statusHeader: ''
             });
@@ -231,6 +270,16 @@ class ClientEventShow extends Component {
                                 copiedTicketId: ticket.ticketId.toString(),
                                 errorMessage: '',
                                 successMessage: `Copied barcode value for ticket #${ticket.ticketId}.`
+                            });
+                            this.logClientAudit({
+                                action: 'Ticket barcode copied',
+                                status: 'success',
+                                entityType: 'ticket',
+                                entityId: ticket.ticketId.toString(),
+                                details: {
+                                    eventName: this.props.name,
+                                    barcodeValue: ticket.barcodeValue
+                                }
                             });
                         } catch (error) {
                             this.setState({ errorMessage: 'Unable to copy barcode value from this browser.' });

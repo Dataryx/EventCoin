@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { Button, Message, Input } from 'semantic-ui-react';
 import AdminShell from '../../components/adminShell';
+import { persistAuditLog } from '../../ethereum/auditLog';
 
 class AdminClients extends Component {
     state = {
@@ -41,6 +42,27 @@ class AdminClients extends Component {
     };
 
     normalizeIdentity = (value) => (value || '').trim().toLowerCase();
+
+    logAdminAudit = ({ action, status, client = {}, details = {} }) => {
+        const adminAccount = this.state.adminAccount || window.localStorage.getItem('adminAccount') || 'Admin';
+
+        persistAuditLog({
+            actorName: adminAccount,
+            actorRole: 'admin',
+            actorId: adminAccount,
+            action,
+            status,
+            entityType: 'client',
+            entityId: client.id || '',
+            route: '/admin/clients',
+            details: {
+                clientName: client.name || '',
+                username: client.username || '',
+                email: client.email || '',
+                ...details
+            }
+        });
+    };
 
     startEdit = (client) => {
         this.setState({
@@ -102,8 +124,14 @@ class AdminClients extends Component {
                 ? { ...client, name: nextName, username: nextUsername, email: nextEmail }
                 : client
         ));
+        const savedClient = updatedClients.find((client) => client.id === editingClientId) || {};
 
         this.persistClients(updatedClients);
+        this.logAdminAudit({
+            action: 'Client updated',
+            status: 'success',
+            client: savedClient
+        });
         this.setState({
             editingClientId: '',
             editName: '',
@@ -123,6 +151,11 @@ class AdminClients extends Component {
 
         const nextClients = this.state.clients.filter((client) => client.id !== clientId);
         this.persistClients(nextClients);
+        this.logAdminAudit({
+            action: 'Client deleted',
+            status: 'success',
+            client: clientToDelete || {}
+        });
 
         const activeIdentity = window.localStorage.getItem('clientAccount');
         if (activeIdentity && targetIdentity && this.normalizeIdentity(activeIdentity) === this.normalizeIdentity(targetIdentity)) {

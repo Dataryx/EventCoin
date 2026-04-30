@@ -4,6 +4,7 @@ import Layout from '../../../components/layout';
 import Event from '../../../ethereum/event';
 import web3 from '../../../ethereum/web3';
 import { parseTicketBarcodeValue } from '../../../ethereum/ticketBarcode';
+import { persistAuditLog } from '../../../ethereum/auditLog';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -28,6 +29,36 @@ class ValidateTicket extends Component {
         successMessage: '',
         statusMessage: '',
         statusHeader: ''
+    };
+
+    getAdminAuditActor = () => {
+        const adminAccount = typeof window !== 'undefined'
+            ? (window.localStorage.getItem('adminAccount') || 'Admin')
+            : 'Admin';
+
+        return {
+            actorName: adminAccount,
+            actorRole: 'admin',
+            actorId: adminAccount
+        };
+    };
+
+    logAdminAudit = ({ action, status, entityId = '', details = {} }) => {
+        const actor = this.getAdminAuditActor();
+
+        persistAuditLog({
+            ...actor,
+            action,
+            status,
+            entityType: 'ticket',
+            entityId: entityId ? entityId.toString() : '',
+            route: `/events/${this.props.contractAddress}/owners/validateTicket`,
+            details: {
+                eventName: this.props.eventName,
+                eventAddress: this.props.contractAddress,
+                ...details
+            }
+        });
     };
 
     getEventInstance() {
@@ -98,6 +129,75 @@ class ValidateTicket extends Component {
         return parseTicketBarcodeValue(rawValue);
     };
 
+    getTicketIdFromBarcodeText = (rawValue) => {
+        try {
+            return this.parseBarcodeValue(rawValue).ticketId?.toString() || '';
+        } catch (error) {
+            return '';
+        }
+    };
+
+    getAuditContextForAction = (loadingAction) => {
+        switch (loadingAction) {
+        case 'validate-barcode-value':
+            return {
+                action: 'Ticket validation',
+                source: 'barcode value',
+                entityId: this.getTicketIdFromBarcodeText(this.state.barcodeValueInput)
+            };
+        case 'use-barcode-value':
+            return {
+                action: 'Ticket use',
+                source: 'barcode value',
+                entityId: this.getTicketIdFromBarcodeText(this.state.barcodeValueInput)
+            };
+        case 'validate-ticket-id':
+            return {
+                action: 'Ticket validation',
+                source: 'ticket id',
+                entityId: this.state.ticketId.trim()
+            };
+        case 'use-ticket-id':
+            return {
+                action: 'Ticket use',
+                source: 'ticket id',
+                entityId: this.state.ticketId.trim()
+            };
+        case 'validate-uploaded-barcode':
+            return {
+                action: 'Ticket validation',
+                source: 'uploaded barcode',
+                entityId: this.getTicketIdFromBarcodeText(this.state.decodedBarcodeText)
+            };
+        case 'use-uploaded-barcode':
+            return {
+                action: 'Ticket use',
+                source: 'uploaded barcode',
+                entityId: this.getTicketIdFromBarcodeText(this.state.decodedBarcodeText)
+            };
+        default:
+            return null;
+        }
+    };
+
+    logActionFailure = (loadingAction, error) => {
+        const auditContext = this.getAuditContextForAction(loadingAction);
+
+        if (!auditContext) {
+            return;
+        }
+
+        this.logAdminAudit({
+            action: auditContext.action,
+            status: 'failed',
+            entityId: auditContext.entityId,
+            details: {
+                source: auditContext.source,
+                reason: this.extractRpcErrorMessage(error)
+            }
+        });
+    };
+
     getTicketSnapshot = async (ticketId) => {
         const eventInstance = this.getEventInstance();
         const ticketDetails = await eventInstance.methods.tickets(ticketId).call();
@@ -132,13 +232,33 @@ class ValidateTicket extends Component {
         return snapshot;
     };
 
-    validateWithContract = async (barcodeData) => {
+    validateWithContract = async (barcodeData, source = 'barcode value', shouldLog = true) => {
         const snapshot = await this.assertTicketIsSoldAndUnused(barcodeData.ticketId);
+        if (shouldLog) {
+            this.logAdminAudit({
+                action: 'Ticket validation',
+                status: 'success',
+                entityId: barcodeData.ticketId,
+                details: {
+                    source,
+                    owner: snapshot.owner
+                }
+            });
+        }
         return `Ticket #${barcodeData.ticketId} is valid and unused. Current owner: ${snapshot.owner}`;
     };
 
     validateByTicketId = async () => {
         const snapshot = await this.assertTicketIsSoldAndUnused(this.state.ticketId.trim());
+        this.logAdminAudit({
+            action: 'Ticket validation',
+            status: 'success',
+            entityId: snapshot.ticketId,
+            details: {
+                source: 'ticket id',
+                owner: snapshot.owner
+            }
+        });
         return `Ticket #${snapshot.ticketId} is valid and unused. Owner: ${snapshot.owner}`;
     };
 
@@ -169,7 +289,7 @@ class ValidateTicket extends Component {
         };
     };
 
-    markTicketAsUsed = async (ticketId) => {
+    markTicketAsUsed = async (ticketId, source = 'ticket id') => {
         await this.assertTicketIsSoldAndUnused(ticketId);
         this.setState({
             statusHeader: 'Entry status',
@@ -197,6 +317,16 @@ class ValidateTicket extends Component {
                 gas: 300000
             });
             const usedTicketId = result.events?.TicketUsed?.returnValues?.ticketId ?? ticketId;
+            this.logAdminAudit({
+                action: 'Ticket use',
+                status: 'success',
+                entityId: usedTicketId,
+                details: {
+                    source,
+                    managerWallet: managerAddress,
+                    walletUsed: activeAccount
+                }
+            });
             return `Ticket #${usedTicketId} was marked as used successfully. Entry is now locked to prevent ticket reuse.`;
         } catch (error) {
             throw new Error(this.formatUseTicketError(error, managerAddress));
@@ -205,12 +335,12 @@ class ValidateTicket extends Component {
 
     useByTicketId = async () => {
         const ticketId = this.state.ticketId.trim();
-        return this.markTicketAsUsed(ticketId);
+        return this.markTicketAsUsed(ticketId, 'ticket id');
     };
 
-    useByBarcodeValue = async (barcodeData) => {
-        await this.validateWithContract(barcodeData);
-        return this.markTicketAsUsed(barcodeData.ticketId);
+    useByBarcodeValue = async (barcodeData, source = 'barcode value') => {
+        await this.validateWithContract(barcodeData, source, false);
+        return this.markTicketAsUsed(barcodeData.ticketId, source);
     };
 
     decodeBarcodeWithZxing = async (file) => {
@@ -324,6 +454,7 @@ class ValidateTicket extends Component {
             const successMessage = await callback();
             this.setState({ successMessage, loadingAction: '' });
         } catch (error) {
+            this.logActionFailure(loadingAction, error);
             this.setState({
                 errorMessage: this.extractRpcErrorMessage(error),
                 loadingAction: '',
@@ -340,14 +471,14 @@ class ValidateTicket extends Component {
         event.preventDefault();
         await this.runAction('validate-barcode-value', async () => {
             const barcodeData = this.parseBarcodeValue(this.state.barcodeValueInput);
-            return this.validateWithContract(barcodeData);
+            return this.validateWithContract(barcodeData, 'barcode value');
         });
     };
 
     onUseByBarcodeValue = async () => {
         await this.runAction('use-barcode-value', async () => {
             const barcodeData = this.parseBarcodeValue(this.state.barcodeValueInput);
-            return this.useByBarcodeValue(barcodeData);
+            return this.useByBarcodeValue(barcodeData, 'barcode value');
         });
     };
 
@@ -398,7 +529,7 @@ class ValidateTicket extends Component {
             }
 
             const barcodeData = this.parseBarcodeValue(this.state.decodedBarcodeText);
-            return this.validateWithContract(barcodeData);
+            return this.validateWithContract(barcodeData, 'uploaded barcode');
         });
     };
 
@@ -409,7 +540,7 @@ class ValidateTicket extends Component {
             }
 
             const barcodeData = this.parseBarcodeValue(this.state.decodedBarcodeText);
-            return this.useByBarcodeValue(barcodeData);
+            return this.useByBarcodeValue(barcodeData, 'uploaded barcode');
         });
     };
 
