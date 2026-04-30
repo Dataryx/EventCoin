@@ -157,11 +157,11 @@ class ClientLogin extends Component {
                             <span className="eyebrow">EVENTCOIN CLIENT</span>
                             <h1>Ticketmaster-style Launchpad</h1>
                             <p>
-                                Sign in with your email or username to explore events, buy tickets, and manage QR passes.
+                                Sign in with your email or username to explore events, buy tickets, and manage barcode passes.
                             </p>
                             <div className="feature-list">
                                 <span className="feature-chip">CLIENT CHECKOUT</span>
-                                <span className="feature-chip">QR TICKETS</span>
+                                <span className="feature-chip">BARCODE TICKETS</span>
                                 <span className="feature-chip">EVENT DASHBOARD</span>
                             </div>
                         </div>

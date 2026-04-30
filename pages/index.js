@@ -12,12 +12,12 @@ class LoginPortal extends Component {
                         <div className="hero-copy">
                             <h1>EventCoin Commerce Hub</h1>
                             <p className="hero-description">
-                                A full event ticketing commerce platform with role-based portals, checkout, QR tickets, and validation.
+                                A full event ticketing commerce platform with role-based portals, checkout, barcode tickets, and validation.
                             </p>
                             <div className="hero-tags">
                                 <span className="tag">CLIENT CHECKOUT</span>
                                 <span className="tag">ADMIN OPS</span>
-                                <span className="tag">QR VALIDATION</span>
+                                <span className="tag">BARCODE VALIDATION</span>
                             </div>
                         </div>
                         <div className="hero-side-card">
@@ -27,7 +27,7 @@ class LoginPortal extends Component {
                             <div className="side-list">
                                 <span><Icon name="check circle" /> Secure wallet-based access</span>
                                 <span><Icon name="check circle" /> Live event inventory</span>
-                                <span><Icon name="check circle" /> Instant QR workflows</span>
+                                <span><Icon name="check circle" /> Instant barcode workflows</span>
                             </div>
                         </div>
                     </section>
@@ -38,7 +38,7 @@ class LoginPortal extends Component {
                                 <span className="pill admin">Admin</span>
                                 <h3>Admin Portal</h3>
                             </div>
-                            <p>Create events, manage tickets, and validate QR tickets from an operations-focused dashboard.</p>
+                            <p>Create events, manage tickets, and validate barcode tickets from an operations-focused dashboard.</p>
                             <Link route="/admin/login" legacyBehavior>
                                 <a>
                                     <Button primary icon labelPosition="left" className="tm-btn">
@@ -54,7 +54,7 @@ class LoginPortal extends Component {
                                 <span className="pill client">Client</span>
                                 <h3>Client Portal</h3>
                             </div>
-                            <p>Explore events, purchase tickets, and view QR tickets instantly with a modern storefront flow.</p>
+                            <p>Explore events, purchase tickets, and view barcode tickets instantly with a modern storefront flow.</p>
                             <Link route="/client/login" legacyBehavior>
                                 <a>
                                     <Button color="teal" icon labelPosition="left" className="tm-btn client-btn">

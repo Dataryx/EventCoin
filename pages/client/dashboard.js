@@ -340,7 +340,7 @@ class ClientDashboard extends Component {
                                         className="meta-strip"
                                         style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}
                                     >
-                                        <span className="meta-chip" style={{ display: 'inline-flex', alignItems: 'center', borderRadius: '999px', padding: '4px 8px', background: '#dbeafe', color: '#1e3a8a', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>QR Delivery</span>
+                                        <span className="meta-chip" style={{ display: 'inline-flex', alignItems: 'center', borderRadius: '999px', padding: '4px 8px', background: '#dbeafe', color: '#1e3a8a', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Barcode Delivery</span>
                                         <span className="meta-chip" style={{ display: 'inline-flex', alignItems: 'center', borderRadius: '999px', padding: '4px 8px', background: '#dbeafe', color: '#1e3a8a', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>On-chain</span>
                                         <span className="meta-chip" style={{ display: 'inline-flex', alignItems: 'center', borderRadius: '999px', padding: '4px 8px', background: '#dbeafe', color: '#1e3a8a', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{event.ticketsSold} sold</span>
                                     </div>

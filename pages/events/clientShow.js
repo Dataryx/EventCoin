@@ -1,12 +1,13 @@
 import React, { Component } from 'react';
 import { Button, Message, Input, Icon } from 'semantic-ui-react';
-import { QRCodeSVG } from 'qrcode.react';
 import Layout from '../../components/layout';
 import Event from '../../ethereum/event';
 import web3 from '../../ethereum/web3';
 import { getClientSession, isTicketOwnedByClient } from '../../ethereum/clientSession';
 import { reconcileClientTicketsForEvent } from '../../ethereum/clientTickets';
 import { persistClientTransaction } from '../../ethereum/clientTransactions';
+import TicketBarcode from '../../components/ticketBarcode';
+import { createTicketBarcodeValue } from '../../ethereum/ticketBarcode';
 
 class ClientEventShow extends Component {
     static async getInitialProps(props) {
@@ -62,17 +63,6 @@ class ClientEventShow extends Component {
 
         window.localStorage.setItem(this.storageKey(), JSON.stringify(nextTickets));
         this.setState({ purchasedTickets: tickets });
-    };
-
-    createQrPayload = (ticketId, buyerAddress) => {
-        const uniqueNonce = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-        return JSON.stringify({
-            eventAddress: this.props.contractAddress,
-            ticketId: ticketId.toString(),
-            buyerAddress,
-            issuedAt: new Date().toISOString(),
-            nonce: uniqueNonce
-        });
     };
 
     formatCheckoutError = (error) => {
@@ -146,12 +136,13 @@ class ClientEventShow extends Component {
                     value: this.props.ticketPrice
                 });
                 const ticketId = result.events.TicketPurchased.returnValues.ticketId;
-                const qrPayload = this.createQrPayload(ticketId, buyerAddress);
+                const barcodeValue = createTicketBarcodeValue(ticketId);
                 newTickets.push({
                     ticketId: ticketId.toString(),
-                    qrPayload,
+                    barcodeValue,
                     buyerAddress,
                     eventAddress: this.props.contractAddress,
+                    issuedAt: purchaseTimestamp,
                     purchaserClientId,
                     purchaserId,
                     purchaserName: profile.name || purchaserId
@@ -178,7 +169,7 @@ class ClientEventShow extends Component {
             this.setState({
                 successMessage: `Checkout successful! Purchased ${cartQuantity} ticket(s).`,
                 statusHeader: 'Purchase complete',
-                statusMessage: `Your QR ticket${cartQuantity > 1 ? 's are' : ' is'} now saved in this browser wallet and ready for entry.`,
+                statusMessage: `Your barcode ticket${cartQuantity > 1 ? 's are' : ' is'} now saved in this browser wallet and ready for entry.`,
                 clientWallet: buyerAddress,
                 cartQuantity: 0
             });
@@ -213,40 +204,40 @@ class ClientEventShow extends Component {
         });
     };
 
-    renderTicketQrCards() {
+    renderTicketBarcodeCards() {
         if (!this.state.purchasedTickets.length) {
             return <p className="empty-tickets">No purchased tickets in this browser for this event yet.</p>;
         }
 
         return this.state.purchasedTickets.map((ticket) => (
-            <article key={ticket.ticketId} className="qr-card">
-                <div className="qr-card-head">
+            <article key={ticket.ticketId} className="barcode-card">
+                <div className="barcode-card-head">
                     <h4>Ticket #{ticket.ticketId}</h4>
-                    <span className="ticket-pill">QR READY</span>
+                    <span className="ticket-pill">BARCODE READY</span>
                 </div>
                 <p className="owner-row">Owner: {ticket.purchaserName || ticket.purchaserId || ticket.buyerAddress}</p>
-                <div className="qr-wrap">
-                    <QRCodeSVG value={ticket.qrPayload} size={180} />
+                <div className="barcode-wrap">
+                    <TicketBarcode value={ticket.barcodeValue} height={72} width={1.8} />
                 </div>
-                <p className="payload-copy">{ticket.qrPayload}</p>
+                <p className="payload-copy">{ticket.barcodeValue}</p>
                 <Button
                     basic
                     color="blue"
                     size="tiny"
                     onClick={async () => {
                         try {
-                            await navigator.clipboard.writeText(ticket.qrPayload);
+                            await navigator.clipboard.writeText(ticket.barcodeValue || '');
                             this.setState({
                                 copiedTicketId: ticket.ticketId.toString(),
                                 errorMessage: '',
-                                successMessage: `Copied QR payload for ticket #${ticket.ticketId}.`
+                                successMessage: `Copied barcode value for ticket #${ticket.ticketId}.`
                             });
                         } catch (error) {
-                            this.setState({ errorMessage: 'Unable to copy QR payload from this browser.' });
+                            this.setState({ errorMessage: 'Unable to copy barcode value from this browser.' });
                         }
                     }}
                 >
-                    Copy QR Payload
+                    Copy Barcode Value
                 </Button>
                 {this.state.copiedTicketId === ticket.ticketId ? <span className="copied-pill">Copied</span> : null}
             </article>
@@ -266,7 +257,7 @@ class ClientEventShow extends Component {
                         <div className="hero-copy">
                             <span className="kicker">EventCoin Commerce Hub</span>
                             <h1>{this.props.name || 'Unnamed Event'}</h1>
-                            <p>{this.props.description || 'Get tickets instantly with Ticketmaster-style checkout and QR delivery.'}</p>
+                            <p>{this.props.description || 'Get tickets instantly with Ticketmaster-style checkout and barcode delivery.'}</p>
                             <div className="hero-tags">
                                 <span className="tag">{this.props.eventDate || 'Date TBD'}</span>
                                 <span className="tag">Sell-through {sellThrough}%</span>
@@ -302,7 +293,7 @@ class ClientEventShow extends Component {
                             <span className="section-kicker">Checkout</span>
                             <h3>Buy Tickets</h3>
                             <p className="checkout-note">
-                                <Icon name="check circle" /> Secure on-chain purchase and instant QR ticket issuance.
+                                <Icon name="check circle" /> Secure on-chain purchase and instant barcode ticket issuance.
                             </p>
                             <Input
                                 type="number"
@@ -326,10 +317,10 @@ class ClientEventShow extends Component {
                     <section className="tickets-rail">
                         <div className="tickets-head">
                             <span className="section-kicker">My Tickets</span>
-                            <h3>QR Ticket Wallet</h3>
+                            <h3>Barcode Ticket Wallet</h3>
                         </div>
                         <div className="tickets-grid">
-                            {this.renderTicketQrCards()}
+                            {this.renderTicketBarcodeCards()}
                         </div>
                     </section>
                 </div>
@@ -375,12 +366,12 @@ class ClientEventShow extends Component {
                     :global(.tm-btn.ui.button) { border-radius: 14px !important; font-weight: 800 !important; letter-spacing: 0.04em; text-transform: uppercase; margin-top: 8px; }
                     :global(.checkout-btn.ui.button) { background: linear-gradient(90deg, #002060 0%, #026cdf 100%) !important; }
                     .tickets-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-                    .qr-card { border: 1px solid #dbe4f0; border-radius: 16px; background: white; padding: 12px; }
-                    .qr-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-                    .qr-card-head h4 { margin: 0; color: #0f172a; font-family: 'Barlow Condensed', sans-serif; font-size: 1.4rem; }
+                    .barcode-card { border: 1px solid #dbe4f0; border-radius: 16px; background: white; padding: 12px; }
+                    .barcode-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+                    .barcode-card-head h4 { margin: 0; color: #0f172a; font-family: 'Barlow Condensed', sans-serif; font-size: 1.4rem; }
                     .ticket-pill { border-radius: 999px; padding: 4px 9px; background: #dcfce7; color: #166534; font-size: 0.7rem; font-weight: 800; }
                     .owner-row { margin: 0 0 8px; color: #334155; font-size: 0.84rem; word-break: break-all; }
-                    .qr-wrap { margin-bottom: 8px; }
+                    .barcode-wrap { margin-bottom: 8px; }
                     .payload-copy { margin: 0 0 8px; color: #64748b; font-size: 0.76rem; line-height: 1.45; word-break: break-all; }
                     .copied-pill { margin-left: 8px; color: #059669; font-weight: 700; font-size: 0.8rem; }
                     .empty-tickets { margin: 0; color: #64748b; padding: 8px; }

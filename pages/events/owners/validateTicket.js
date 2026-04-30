@@ -3,6 +3,7 @@ import { Form, Button, Message } from 'semantic-ui-react';
 import Layout from '../../../components/layout';
 import Event from '../../../ethereum/event';
 import web3 from '../../../ethereum/web3';
+import { parseTicketBarcodeValue } from '../../../ethereum/ticketBarcode';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -19,9 +20,9 @@ class ValidateTicket extends Component {
     }
 
     state = {
-        qrPayload: '',
+        barcodeValueInput: '',
         ticketId: '',
-        decodedQrText: '',
+        decodedBarcodeText: '',
         loadingAction: '',
         errorMessage: '',
         successMessage: '',
@@ -93,28 +94,8 @@ class ValidateTicket extends Component {
         }
     };
 
-    parsePayload = (rawValue) => {
-        let payload;
-
-        try {
-            payload = JSON.parse(rawValue);
-        } catch (error) {
-            throw new Error('QR payload must be valid JSON.');
-        }
-
-        if (!payload.ticketId && payload.ticketId !== 0) {
-            throw new Error('QR payload is missing ticketId.');
-        }
-
-        if (!payload.buyerAddress) {
-            throw new Error('QR payload is missing buyerAddress.');
-        }
-
-        if (!payload.eventAddress) {
-            throw new Error('QR payload is missing eventAddress.');
-        }
-
-        return payload;
+    parseBarcodeValue = (rawValue) => {
+        return parseTicketBarcodeValue(rawValue);
     };
 
     getTicketSnapshot = async (ticketId) => {
@@ -151,20 +132,9 @@ class ValidateTicket extends Component {
         return snapshot;
     };
 
-    validateWithContract = async (payload) => {
-        await this.assertAdminAccess();
-
-        if (payload.eventAddress.toLowerCase() !== this.props.contractAddress.toLowerCase()) {
-            throw new Error('This QR belongs to another event contract.');
-        }
-
-        const snapshot = await this.assertTicketIsSoldAndUnused(payload.ticketId);
-
-        if (snapshot.owner.toLowerCase() !== payload.buyerAddress.toLowerCase()) {
-            throw new Error('Ticket owner does not match QR owner data.');
-        }
-
-        return `Ticket #${payload.ticketId} is valid and unused. Current owner: ${snapshot.owner}`;
+    validateWithContract = async (barcodeData) => {
+        const snapshot = await this.assertTicketIsSoldAndUnused(barcodeData.ticketId);
+        return `Ticket #${barcodeData.ticketId} is valid and unused. Current owner: ${snapshot.owner}`;
     };
 
     validateByTicketId = async () => {
@@ -238,36 +208,78 @@ class ValidateTicket extends Component {
         return this.markTicketAsUsed(ticketId);
     };
 
-    useByPayload = async (payload) => {
-        await this.validateWithContract(payload);
-        return this.markTicketAsUsed(payload.ticketId);
+    useByBarcodeValue = async (barcodeData) => {
+        await this.validateWithContract(barcodeData);
+        return this.markTicketAsUsed(barcodeData.ticketId);
     };
 
-    decodeQrFromImage = async (file) => {
-        if (typeof window === 'undefined' || !window.BarcodeDetector) {
-            throw new Error('QR image decoding is not supported in this browser. Use Ticket ID or paste the QR payload.');
+    decodeBarcodeWithZxing = async (file) => {
+        const [{ BrowserMultiFormatReader }, { BarcodeFormat, DecodeHintType }] = await Promise.all([
+            import('@zxing/browser'),
+            import('@zxing/library')
+        ]);
+
+        const hints = new Map();
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128]);
+
+        const reader = new BrowserMultiFormatReader(hints);
+        const objectUrl = URL.createObjectURL(file);
+        const image = new window.Image();
+
+        try {
+            await new Promise((resolve, reject) => {
+                image.onload = () => resolve();
+                image.onerror = () => reject(new Error('Unable to load the uploaded barcode image.'));
+                image.src = objectUrl;
+            });
+
+            const result = await reader.decodeFromImageElement(image);
+            if (!result?.getText) {
+                throw new Error('No barcode found in the uploaded image.');
+            }
+
+            return result.getText();
+        } catch (error) {
+            throw new Error('No barcode found in the uploaded image. Try a sharper screenshot or use the barcode value text field.');
+        } finally {
+            image.src = '';
+            URL.revokeObjectURL(objectUrl);
+        }
+    };
+
+    decodeBarcodeFromImage = async (file) => {
+        if (typeof window === 'undefined') {
+            throw new Error('Barcode image decoding is only available in the browser.');
         }
 
-        const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-        const bitmap = await createImageBitmap(file);
-        const results = await detector.detect(bitmap);
+        if (window.BarcodeDetector) {
+            const detector = new window.BarcodeDetector({ formats: ['code_128'] });
+            const bitmap = await createImageBitmap(file);
 
-        if (!results.length || !results[0].rawValue) {
-            throw new Error('No QR code found in the uploaded image.');
+            try {
+                const results = await detector.detect(bitmap);
+                if (results.length && results[0].rawValue) {
+                    return results[0].rawValue;
+                }
+            } finally {
+                if (bitmap?.close) {
+                    bitmap.close();
+                }
+            }
         }
 
-        return results[0].rawValue;
+        return this.decodeBarcodeWithZxing(file);
     };
 
     getActionStatus = (loadingAction) => {
         const actionCopy = {
-            'validate-payload': {
+            'validate-barcode-value': {
                 header: 'Validation status',
-                message: 'Checking the QR payload against the selected event contract and current ticket state.'
+                message: 'Checking the barcode value against the selected event contract and current ticket state.'
             },
-            'use-payload': {
+            'use-barcode-value': {
                 header: 'Entry status',
-                message: 'Validating the QR payload and preparing the on-chain ticket-use transaction.'
+                message: 'Validating the barcode value and preparing the on-chain ticket-use transaction.'
             },
             'validate-ticket-id': {
                 header: 'Validation status',
@@ -277,17 +289,17 @@ class ValidateTicket extends Component {
                 header: 'Entry status',
                 message: 'Checking the ticket ID and preparing the wallet confirmation needed to mark it used.'
             },
-            'validate-uploaded-qr': {
+            'validate-uploaded-barcode': {
                 header: 'Validation status',
-                message: 'Reviewing the decoded QR payload and checking ticket ownership and usage state.'
+                message: 'Reviewing the decoded barcode value and checking ticket ownership and usage state.'
             },
-            'use-uploaded-qr': {
+            'use-uploaded-barcode': {
                 header: 'Entry status',
-                message: 'Reviewing the uploaded QR payload and preparing the use-ticket transaction.'
+                message: 'Reviewing the uploaded barcode value and preparing the use-ticket transaction.'
             },
-            'decode-qr': {
-                header: 'QR scan status',
-                message: 'Scanning the uploaded image for a QR code payload.'
+            'decode-barcode': {
+                header: 'Barcode scan status',
+                message: 'Scanning the uploaded image for a ticket barcode value.'
             }
         };
 
@@ -324,18 +336,18 @@ class ValidateTicket extends Component {
         this.setState({ loadingAction: '', statusHeader: '', statusMessage: '' });
     };
 
-    onValidateByQrPayload = async (event) => {
+    onValidateByBarcodeValue = async (event) => {
         event.preventDefault();
-        await this.runAction('validate-payload', async () => {
-            const payload = this.parsePayload(this.state.qrPayload);
-            return this.validateWithContract(payload);
+        await this.runAction('validate-barcode-value', async () => {
+            const barcodeData = this.parseBarcodeValue(this.state.barcodeValueInput);
+            return this.validateWithContract(barcodeData);
         });
     };
 
-    onUseByQrPayload = async () => {
-        await this.runAction('use-payload', async () => {
-            const payload = this.parsePayload(this.state.qrPayload);
-            return this.useByPayload(payload);
+    onUseByBarcodeValue = async () => {
+        await this.runAction('use-barcode-value', async () => {
+            const barcodeData = this.parseBarcodeValue(this.state.barcodeValueInput);
+            return this.useByBarcodeValue(barcodeData);
         });
     };
 
@@ -348,15 +360,15 @@ class ValidateTicket extends Component {
         await this.runAction('use-ticket-id', this.useByTicketId);
     };
 
-    onUploadQrImage = async (event) => {
+    onUploadBarcodeImage = async (event) => {
         const file = event.target.files && event.target.files[0];
         if (!file) {
             return;
         }
 
-        const decodeStatus = this.getActionStatus('decode-qr');
+        const decodeStatus = this.getActionStatus('decode-barcode');
         this.setState({
-            loadingAction: 'decode-qr',
+            loadingAction: 'decode-barcode',
             errorMessage: '',
             successMessage: '',
             statusHeader: decodeStatus.header,
@@ -364,11 +376,11 @@ class ValidateTicket extends Component {
         });
 
         try {
-            const decodedQrText = await this.decodeQrFromImage(file);
+            const decodedBarcodeText = await this.decodeBarcodeFromImage(file);
             this.setState({
-                decodedQrText,
-                qrPayload: decodedQrText,
-                successMessage: 'QR image decoded successfully. Review the payload below, then validate it or mark the ticket used.',
+                decodedBarcodeText,
+                barcodeValueInput: decodedBarcodeText,
+                successMessage: 'Barcode image decoded successfully. Review the value below, then validate it or mark the ticket used.',
                 statusHeader: '',
                 statusMessage: ''
             });
@@ -379,25 +391,25 @@ class ValidateTicket extends Component {
         this.setState({ loadingAction: '' });
     };
 
-    onValidateUploadedQr = async () => {
-        await this.runAction('validate-uploaded-qr', async () => {
-            if (!this.state.decodedQrText) {
-                throw new Error('Upload a QR image first.');
+    onValidateUploadedBarcode = async () => {
+        await this.runAction('validate-uploaded-barcode', async () => {
+            if (!this.state.decodedBarcodeText) {
+                throw new Error('Upload a barcode image first.');
             }
 
-            const payload = this.parsePayload(this.state.decodedQrText);
-            return this.validateWithContract(payload);
+            const barcodeData = this.parseBarcodeValue(this.state.decodedBarcodeText);
+            return this.validateWithContract(barcodeData);
         });
     };
 
-    onUseUploadedQr = async () => {
-        await this.runAction('use-uploaded-qr', async () => {
-            if (!this.state.decodedQrText) {
-                throw new Error('Upload a QR image first.');
+    onUseUploadedBarcode = async () => {
+        await this.runAction('use-uploaded-barcode', async () => {
+            if (!this.state.decodedBarcodeText) {
+                throw new Error('Upload a barcode image first.');
             }
 
-            const payload = this.parsePayload(this.state.decodedQrText);
-            return this.useByPayload(payload);
+            const barcodeData = this.parseBarcodeValue(this.state.decodedBarcodeText);
+            return this.useByBarcodeValue(barcodeData);
         });
     };
 
@@ -409,7 +421,7 @@ class ValidateTicket extends Component {
                         <div className="hero-copy">
                             <span className="hero-kicker">Ticketmaster-style Admin</span>
                             <h1>Admin Ticket Validation and Use</h1>
-                            <p className="hero-subtitle">Validate tickets or mark them used from the same event-specific screen using ticket ID, QR image scan, or QR payload text.</p>
+                            <p className="hero-subtitle">Validate tickets or mark them used from the same event-specific screen using ticket ID, barcode image scan, or barcode value text.</p>
                             <div className="hero-meta">
                                 <span className="meta-pill">{this.props.eventName || 'Unnamed Event'}</span>
                                 <span className="meta-pill">{this.props.eventDate || 'Date TBD'}</span>
@@ -471,73 +483,73 @@ class ValidateTicket extends Component {
 
                         <article className="workflow-card">
                             <span className="section-kicker">Method 2</span>
-                            <h3>QR Image Upload</h3>
+                            <h3>Barcode Image Upload</h3>
                             <Form>
                                 <Form.Input
                                     type="file"
                                     accept="image/*"
-                                    onChange={this.onUploadQrImage}
-                                    label="Upload QR image"
+                                    onChange={this.onUploadBarcodeImage}
+                                    label="Upload barcode image"
                                 />
                             </Form>
-                            {this.state.decodedQrText ? (
-                                <p className="decoded-copy">Decoded QR payload: {this.state.decodedQrText}</p>
+                            {this.state.decodedBarcodeText ? (
+                                <p className="decoded-copy">Decoded barcode value: {this.state.decodedBarcodeText}</p>
                             ) : (
-                                <p className="decoded-copy muted">Upload a QR image to decode it, then validate it or mark it used.</p>
+                                <p className="decoded-copy muted">Upload a barcode image to decode it, then validate it or mark it used.</p>
                             )}
                             <div className="action-row">
                                 <Button
                                     primary
-                                    loading={this.state.loadingAction === 'validate-uploaded-qr'}
-                                    disabled={Boolean(this.state.loadingAction && this.state.loadingAction !== 'validate-uploaded-qr')}
+                                    loading={this.state.loadingAction === 'validate-uploaded-barcode'}
+                                    disabled={Boolean(this.state.loadingAction && this.state.loadingAction !== 'validate-uploaded-barcode')}
                                     className="tm-btn"
                                     type="button"
-                                    onClick={this.onValidateUploadedQr}
+                                    onClick={this.onValidateUploadedBarcode}
                                 >
-                                    Validate Uploaded QR
+                                    Validate Uploaded Barcode
                                 </Button>
                                 <Button
                                     secondary
-                                    loading={this.state.loadingAction === 'use-uploaded-qr'}
-                                    disabled={Boolean(this.state.loadingAction && this.state.loadingAction !== 'use-uploaded-qr')}
+                                    loading={this.state.loadingAction === 'use-uploaded-barcode'}
+                                    disabled={Boolean(this.state.loadingAction && this.state.loadingAction !== 'use-uploaded-barcode')}
                                     className="tm-btn tm-btn-secondary"
                                     type="button"
-                                    onClick={this.onUseUploadedQr}
+                                    onClick={this.onUseUploadedBarcode}
                                 >
-                                    Use Uploaded QR
+                                    Use Uploaded Barcode
                                 </Button>
                             </div>
                         </article>
 
                         <article className="workflow-card workflow-card-wide">
                             <span className="section-kicker">Method 3</span>
-                            <h3>QR Payload Text</h3>
-                            <Form onSubmit={this.onValidateByQrPayload}>
+                            <h3>Barcode Value Text</h3>
+                            <Form onSubmit={this.onValidateByBarcodeValue}>
                                 <Form.TextArea
                                     rows={8}
-                                    value={this.state.qrPayload}
-                                    onChange={(event) => this.setState({ qrPayload: event.target.value })}
-                                    placeholder="Paste QR JSON payload here"
+                                    value={this.state.barcodeValueInput}
+                                    onChange={(event) => this.setState({ barcodeValueInput: event.target.value })}
+                                    placeholder="Paste barcode value here"
                                 />
                                 <div className="action-row">
                                     <Button
                                         primary
-                                        loading={this.state.loadingAction === 'validate-payload'}
-                                        disabled={Boolean(this.state.loadingAction && this.state.loadingAction !== 'validate-payload')}
+                                        loading={this.state.loadingAction === 'validate-barcode-value'}
+                                        disabled={Boolean(this.state.loadingAction && this.state.loadingAction !== 'validate-barcode-value')}
                                         className="tm-btn"
                                         type="submit"
                                     >
-                                        Validate QR Payload
+                                        Validate Barcode Value
                                     </Button>
                                     <Button
                                         secondary
-                                        loading={this.state.loadingAction === 'use-payload'}
-                                        disabled={Boolean(this.state.loadingAction && this.state.loadingAction !== 'use-payload')}
+                                        loading={this.state.loadingAction === 'use-barcode-value'}
+                                        disabled={Boolean(this.state.loadingAction && this.state.loadingAction !== 'use-barcode-value')}
                                         className="tm-btn tm-btn-secondary"
                                         type="button"
-                                        onClick={this.onUseByQrPayload}
+                                        onClick={this.onUseByBarcodeValue}
                                     >
-                                        Use QR Payload
+                                        Use Barcode Value
                                     </Button>
                                 </div>
                             </Form>

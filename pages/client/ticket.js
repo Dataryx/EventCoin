@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
 import { Header, Message } from 'semantic-ui-react';
-import { QRCodeSVG } from 'qrcode.react';
 import Layout from '../../components/layout';
 import Event from '../../ethereum/event';
 import { getClientSession, isTicketOwnedByClient } from '../../ethereum/clientSession';
 import { reconcileClientTicketsForEvent } from '../../ethereum/clientTickets';
+import TicketBarcode from '../../components/ticketBarcode';
 
 class ClientTicketPage extends Component {
     static async getInitialProps(props) {
@@ -71,6 +71,8 @@ class ClientTicketPage extends Component {
                             <p><strong>Date:</strong> {this.props.eventDate || 'Not set'}</p>
                             <p><strong>Contract:</strong> <span className="mono">{this.props.eventAddress}</span></p>
                             <p><strong>Ticket ID:</strong> {this.props.ticketId}</p>
+                            {ticket?.barcodeValue ? <p><strong>Barcode:</strong> <span className="mono">{ticket.barcodeValue}</span></p> : null}
+                            {ticket?.issuedAt ? <p><strong>Issued At:</strong> {ticket.issuedAt}</p> : null}
                             {ticket ? <p><strong>Status:</strong> {isUsed ? 'Used' : 'Active'}</p> : null}
                             {isUsed ? (
                                 <Message warning content="This ticket has already been used and can no longer be used for entry." />
@@ -78,9 +80,9 @@ class ClientTicketPage extends Component {
                             {errorMessage ? <Message error content={errorMessage} /> : null}
                         </div>
                         {ticket ? (
-                            <div className="qr-shell">
-                                <QRCodeSVG value={ticket.qrPayload} size={220} />
-                                <p className="payload">{ticket.qrPayload}</p>
+                            <div className="barcode-shell">
+                                <TicketBarcode value={ticket.barcodeValue} height={96} width={2.1} />
+                                <p className="payload">{ticket.barcodeValue}</p>
                             </div>
                         ) : null}
                     </section>
@@ -128,7 +130,7 @@ class ClientTicketPage extends Component {
                     }
                     .details p { margin: 0 0 8px; color: #334155; }
                     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; }
-                    .qr-shell { border: 1px solid #e2e8f0; border-radius: 14px; background: white; padding: 12px; }
+                    .barcode-shell { border: 1px solid #e2e8f0; border-radius: 14px; background: white; padding: 12px; }
                     .payload { margin: 10px 0 0; color: #64748b; font-size: 0.78rem; line-height: 1.45; word-break: break-all; }
                     @media (max-width: 820px) { .ticket-panel { grid-template-columns: 1fr; } }
                 `}</style>

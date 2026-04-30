@@ -80,9 +80,9 @@ class EventShow extends Component {
         const { contractAddress } = this.props;
         const actions = [
             {
-                label: 'Validate Ticket QR',
+                label: 'Validate Ticket Barcode',
                 route: `/events/${contractAddress}/validate`,
-                icon: 'qrcode',
+                icon: 'barcode',
                 primary: true
             },
             {

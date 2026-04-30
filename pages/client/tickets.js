@@ -1,11 +1,11 @@
 import React, { Component } from 'react';
 import { Message, Button, Icon } from 'semantic-ui-react';
-import { QRCodeSVG } from 'qrcode.react';
 import Layout from '../../components/layout';
 import Event from '../../ethereum/event';
 import { getClientSession, isTicketOwnedByClient } from '../../ethereum/clientSession';
 import { reconcileClientTicketsForEvent } from '../../ethereum/clientTickets';
 import { Link } from '../../routes';
+import TicketBarcode from '../../components/ticketBarcode';
 
 class ClientTicketsPage extends Component {
     state = {
@@ -67,11 +67,11 @@ class ClientTicketsPage extends Component {
         }
     }
 
-    downloadQr = (ticketKey) => {
+    downloadBarcode = (ticketKey) => {
         try {
-            const svg = document.getElementById(`qr-${ticketKey}`);
+            const svg = document.getElementById(`barcode-${ticketKey}`);
             if (!svg) {
-                throw new Error('QR code not found.');
+                throw new Error('Barcode not found.');
             }
 
             const serializer = new XMLSerializer();
@@ -86,7 +86,7 @@ class ClientTicketsPage extends Component {
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
         } catch (error) {
-            this.setState({ errorMessage: 'Unable to download QR right now.' });
+            this.setState({ errorMessage: 'Unable to download barcode right now.' });
         }
     };
 
@@ -121,13 +121,6 @@ class ClientTicketsPage extends Component {
     }
 
     renderTicket(ticket) {
-        let parsedPayload = null;
-        try {
-            parsedPayload = JSON.parse(ticket.qrPayload);
-        } catch (error) {
-            parsedPayload = null;
-        }
-
         const ticketKey = `${ticket.eventAddress}-${ticket.ticketId}`;
         const formattedDate = this.formatTicketDate(ticket.eventDate);
         const isUsed = Boolean(ticket.isUsedOnChain);
@@ -185,7 +178,7 @@ class ClientTicketsPage extends Component {
                     </div>
                     <div className="ticket-badge-wrap">
                         <span className={`ticket-status ${isUsed ? 'used' : ''}`}>
-                            {isUsed ? 'Used' : 'QR Ready'}
+                            {isUsed ? 'Used' : 'Barcode Ready'}
                         </span>
                         <span className="ticket-number">#{ticket.ticketId}</span>
                     </div>
@@ -325,7 +318,7 @@ class ClientTicketsPage extends Component {
                                     }}
                                 >
                                     <span style={fieldLabelStyle}>Ticket Id</span>
-                                    <strong style={fieldValueStyle}>{parsedPayload?.ticketId || 'Unavailable'}</strong>
+                                    <strong style={fieldValueStyle}>{ticket.ticketId || 'Unavailable'}</strong>
                                 </div>
                                 <div
                                     className="validation-item"
@@ -339,7 +332,7 @@ class ClientTicketsPage extends Component {
                                     }}
                                 >
                                     <span style={fieldLabelStyle}>Buyer</span>
-                                    <strong className="mono" style={monoValueStyle}>{parsedPayload?.buyerAddress || 'Unavailable'}</strong>
+                                    <strong className="mono" style={monoValueStyle}>{ticket.buyerAddress || 'Unavailable'}</strong>
                                 </div>
                                 <div
                                     className="validation-item"
@@ -353,7 +346,7 @@ class ClientTicketsPage extends Component {
                                     }}
                                 >
                                     <span style={fieldLabelStyle}>Issued Date</span>
-                                    <strong style={fieldValueStyle}>{parsedPayload?.issuedAt || 'Unavailable'}</strong>
+                                    <strong style={fieldValueStyle}>{ticket.issuedAt || 'Unavailable'}</strong>
                                 </div>
                                 <div
                                     className="validation-item"
@@ -366,15 +359,15 @@ class ClientTicketsPage extends Component {
                                         overflow: 'hidden'
                                     }}
                                 >
-                                    <span style={fieldLabelStyle}>Nonce</span>
-                                    <strong className="mono" style={monoValueStyle}>{parsedPayload?.nonce || 'Unavailable'}</strong>
+                                    <span style={fieldLabelStyle}>Barcode Value</span>
+                                    <strong className="mono" style={monoValueStyle}>{ticket.barcodeValue || 'Unavailable'}</strong>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div
-                        className="qr-panel"
+                        className="barcode-panel"
                         style={{
                             borderRadius: '16px',
                             border: '1px solid #e2e8f0',
@@ -389,7 +382,7 @@ class ClientTicketsPage extends Component {
                         }}
                     >
                         <div
-                            className="section-label qr-label"
+                            className="section-label barcode-label"
                             style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -404,10 +397,10 @@ class ClientTicketsPage extends Component {
                                 textTransform: 'uppercase'
                             }}
                         >
-                            QR Access
+                            Barcode Access
                         </div>
                         <div
-                            className="qr-shell"
+                            className="barcode-shell"
                             style={{
                                 width: '100%',
                                 display: 'flex',
@@ -419,7 +412,7 @@ class ClientTicketsPage extends Component {
                                 border: '1px solid #dbeafe'
                             }}
                         >
-                            <QRCodeSVG id={`qr-${ticketKey}`} value={ticket.qrPayload} size={108} />
+                            <TicketBarcode id={`barcode-${ticketKey}`} value={ticket.barcodeValue} height={54} width={1.55} />
                         </div>
                         <div
                             className="ticket-actions"
@@ -438,17 +431,17 @@ class ClientTicketsPage extends Component {
                                 className="copy-btn"
                                 onClick={async () => {
                                     try {
-                                        await navigator.clipboard.writeText(ticket.qrPayload || '');
+                                        await navigator.clipboard.writeText(ticket.barcodeValue || '');
                                         this.setState({ copiedTicketKey: ticketKey });
                                     } catch (error) {
-                                        this.setState({ errorMessage: 'Unable to copy QR payload.' });
+                                        this.setState({ errorMessage: 'Unable to copy barcode value.' });
                                     }
                                 }}
                             >
-                                Copy QR Payload
+                                Copy Barcode Value
                             </Button>
-                            <Button className="download-btn" onClick={() => this.downloadQr(ticketKey)}>
-                                Download QR
+                            <Button className="download-btn" onClick={() => this.downloadBarcode(ticketKey)}>
+                                Download Barcode
                             </Button>
                             {this.state.copiedTicketKey === ticketKey ? <span className="copied-pill">Copied</span> : null}
                         </div>
@@ -468,7 +461,7 @@ class ClientTicketsPage extends Component {
                         <div className="hero-copy">
                             <span className="kicker">Client Ticket Wallet</span>
                             <h1>My Tickets</h1>
-                            <p>Manage every purchased pass, QR credential, and event entry detail from one Ticketmaster-style wallet.</p>
+                            <p>Manage every purchased pass, barcode credential, and event entry detail from one Ticketmaster-style wallet.</p>
                             <div className="hero-tags">
                                 <span className="hero-tag">{totalTickets} passes</span>
                                 <span className="hero-tag">{uniqueEvents} events</span>
@@ -776,7 +769,7 @@ class ClientTicketsPage extends Component {
                         letter-spacing: 0.08em;
                         text-transform: uppercase;
                     }
-                    .qr-label {
+                    .barcode-label {
                         align-self: center;
                     }
                     .details-grid {
@@ -854,7 +847,7 @@ class ClientTicketsPage extends Component {
                         grid-template-columns: repeat(2, minmax(0, 1fr));
                         gap: 6px;
                     }
-                    .qr-panel {
+                    .barcode-panel {
                         border-radius: 10px;
                         border: 1px solid #e2e8f0;
                         background: white;
@@ -866,7 +859,7 @@ class ClientTicketsPage extends Component {
                         gap: 8px;
                         min-width: 0;
                     }
-                    .qr-shell {
+                    .barcode-shell {
                         width: 100%;
                         display: flex;
                         align-items: center;

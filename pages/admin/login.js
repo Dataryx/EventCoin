@@ -18,7 +18,7 @@ class AdminLogin extends Component {
 
                             <div className="feature-list">
                                 <div className="feature-chip">LIVE EVENT OPS</div>
-                                <div className="feature-chip">QR VALIDATION</div>
+                                <div className="feature-chip">BARCODE VALIDATION</div>
                                 <div className="feature-chip">ON-CHAIN TRACKING</div>
                             </div>
 

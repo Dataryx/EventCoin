@@ -1,5 +1,6 @@
 import Event from './event';
 import { isTicketOwnedByClient } from './clientSession';
+import { normalizeStoredTicket } from './ticketBarcode';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -10,7 +11,8 @@ const readStoredTickets = (eventAddress) => {
 
     try {
         const rawValue = window.localStorage.getItem(`clientTickets:${eventAddress}`);
-        return rawValue ? JSON.parse(rawValue) : [];
+        const parsedTickets = rawValue ? JSON.parse(rawValue) : [];
+        return Array.isArray(parsedTickets) ? parsedTickets.map(normalizeStoredTicket) : [];
     } catch (error) {
         return [];
     }
@@ -21,7 +23,7 @@ const writeStoredTickets = (eventAddress, tickets) => {
         return;
     }
 
-    window.localStorage.setItem(`clientTickets:${eventAddress}`, JSON.stringify(tickets));
+    window.localStorage.setItem(`clientTickets:${eventAddress}`, JSON.stringify(tickets.map(normalizeStoredTicket)));
 };
 
 export const reconcileClientTicketsForEvent = async (eventAddress, session) => {
