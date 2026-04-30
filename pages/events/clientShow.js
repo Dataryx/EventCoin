@@ -28,6 +28,8 @@ class ClientEventShow extends Component {
         loading: false,
         errorMessage: '',
         successMessage: '',
+        statusMessage: '',
+        statusHeader: '',
         clientAccount: '',
         clientWallet: '',
         purchasedTickets: [],
@@ -73,8 +75,34 @@ class ClientEventShow extends Component {
         });
     };
 
+    formatCheckoutError = (error) => {
+        const rawMessage = error?.message || 'Unable to complete checkout right now.';
+
+        if (rawMessage.includes('User denied')) {
+            return 'The payment was cancelled in MetaMask before it was confirmed.';
+        }
+
+        if (rawMessage.toLowerCase().includes('insufficient funds')) {
+            return 'The connected wallet does not have enough ETH to cover this purchase and gas fees.';
+        }
+
+        if (rawMessage.includes('Internal JSON-RPC error')) {
+            return 'Wallet or local blockchain returned a generic RPC error. Verify MetaMask is connected to the expected local network and try again.';
+        }
+
+        return rawMessage;
+    };
+
     handleCheckout = async () => {
-        this.setState({ loading: true, errorMessage: '', successMessage: '' });
+        const cartQuantity = parseInt(this.state.cartQuantity, 10) || 0;
+
+        this.setState({
+            loading: true,
+            errorMessage: '',
+            successMessage: '',
+            statusHeader: 'Payment status',
+            statusMessage: 'Preparing checkout and checking your wallet connection.'
+        });
         const event = Event(this.props.contractAddress);
 
         try {
@@ -95,17 +123,24 @@ class ClientEventShow extends Component {
             const profile = session.clientProfile || {};
             const purchaserId = session.clientAccount || '';
             const purchaserClientId = session.clientIdentity;
-            if (!this.state.cartQuantity) {
+            if (!cartQuantity) {
                 throw new Error('Add at least one ticket to cart before checkout.');
             }
             const available = parseInt(this.props.ticketSupply, 10) - parseInt(this.props.ticketsSold, 10);
-            if (this.state.cartQuantity > available) {
+            if (cartQuantity > available) {
                 throw new Error('Requested quantity exceeds available tickets.');
             }
 
+            this.setState({
+                statusMessage: `Wallet connected. Confirm ${cartQuantity} ticket payment${cartQuantity > 1 ? 's' : ''} in MetaMask to finish checkout.`
+            });
+
             const newTickets = [];
             const purchaseTimestamp = new Date().toISOString();
-            for (let i = 0; i < this.state.cartQuantity; i += 1) {
+            for (let i = 0; i < cartQuantity; i += 1) {
+                this.setState({
+                    statusMessage: `Processing payment ${i + 1} of ${cartQuantity}. MetaMask may prompt for confirmation.`
+                });
                 const result = await event.methods.buyTicket().send({
                     from: buyerAddress,
                     value: this.props.ticketPrice
@@ -131,6 +166,9 @@ class ClientEventShow extends Component {
                     purchaserClientId,
                     purchaserId
                 });
+                this.setState({
+                    statusMessage: `Payment ${i + 1} of ${cartQuantity} confirmed. Ticket #${ticketId} has been issued.`
+                });
             }
 
             const nextTickets = [...newTickets, ...this.state.purchasedTickets];
@@ -138,12 +176,18 @@ class ClientEventShow extends Component {
             window.localStorage.setItem('clientWallet', buyerAddress);
 
             this.setState({
-                successMessage: `Checkout successful! Purchased ${this.state.cartQuantity} ticket(s).`,
+                successMessage: `Checkout successful! Purchased ${cartQuantity} ticket(s).`,
+                statusHeader: 'Purchase complete',
+                statusMessage: `Your QR ticket${cartQuantity > 1 ? 's are' : ' is'} now saved in this browser wallet and ready for entry.`,
                 clientWallet: buyerAddress,
                 cartQuantity: 0
             });
         } catch (err) {
-            this.setState({ errorMessage: err.message });
+            this.setState({
+                errorMessage: this.formatCheckoutError(err),
+                statusMessage: '',
+                statusHeader: ''
+            });
         }
 
         this.setState({ loading: false });
@@ -192,7 +236,11 @@ class ClientEventShow extends Component {
                     onClick={async () => {
                         try {
                             await navigator.clipboard.writeText(ticket.qrPayload);
-                            this.setState({ copiedTicketId: ticket.ticketId.toString() });
+                            this.setState({
+                                copiedTicketId: ticket.ticketId.toString(),
+                                errorMessage: '',
+                                successMessage: `Copied QR payload for ticket #${ticket.ticketId}.`
+                            });
                         } catch (error) {
                             this.setState({ errorMessage: 'Unable to copy QR payload from this browser.' });
                         }
@@ -234,8 +282,9 @@ class ClientEventShow extends Component {
                         </div>
                     </section>
 
-                    {this.state.errorMessage ? <Message error content={this.state.errorMessage} /> : null}
-                    {this.state.successMessage ? <Message success content={this.state.successMessage} /> : null}
+                    {this.state.errorMessage ? <Message error header="Payment failed" content={this.state.errorMessage} /> : null}
+                    {this.state.statusMessage ? <Message info header={this.state.statusHeader || 'Status'} content={this.state.statusMessage} /> : null}
+                    {this.state.successMessage ? <Message success header="Purchase update" content={this.state.successMessage} /> : null}
 
                     <section className="checkout-grid">
                         <article className="info-card">

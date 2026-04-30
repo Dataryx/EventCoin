@@ -6,9 +6,11 @@ import { Link } from '../../routes';
 import Event from '../../ethereum/event';
 
 class AdminEvents extends Component {
-    static async getInitialProps() {
+    static async getInitialProps(props) {
+        const successMessage = props?.query?.successMessage || '';
+
         if (!contractAddress || !getDeployedEventsInstance) {
-            return { events: [], loadError: 'Set NEXT_PUBLIC_DIAMOND_ADDRESS in .env to load deployed events.' };
+            return { events: [], loadError: 'Set NEXT_PUBLIC_DIAMOND_ADDRESS in .env to load deployed events.', successMessage };
         }
 
         try {
@@ -43,9 +45,9 @@ class AdminEvents extends Component {
                 };
             }));
 
-            return { events, loadError: '' };
+            return { events, loadError: '', successMessage };
         } catch (error) {
-            return { events: [], loadError: 'Unable to load events from blockchain right now.' };
+            return { events: [], loadError: 'Unable to load events from blockchain right now.', successMessage };
         }
     }
 
@@ -391,6 +393,7 @@ class AdminEvents extends Component {
                 heroTitle="Live Event Contracts"
                 heroDescription={`${this.props.events.length} deployed event contracts ready for admin access.`}
             >
+                {this.props.successMessage ? <Message success content={this.props.successMessage} style={{ marginBottom: '14px' }} /> : null}
                 <section className="panel event-panel">
                     <div className="panel-header">
                         <div className="panel-heading-copy">

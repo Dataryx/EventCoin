@@ -13,12 +13,33 @@ class EventNew extends Component {
         ticketPrice: '',
         ticketSupply: '',
         errorMessage: '',
+        successMessage: '',
+        statusMessage: '',
         loading: false
+    };
+
+    formatCreateEventError = (error) => {
+        const message = error?.message || 'Unable to create the event right now.';
+
+        if (message.includes('User denied')) {
+            return 'The event creation transaction was cancelled in MetaMask.';
+        }
+
+        if (message.toLowerCase().includes('insufficient funds')) {
+            return 'The connected wallet does not have enough ETH to pay for the create-event transaction gas.';
+        }
+
+        return message;
     };
 
     onSubmit = async (event) =>  {
         event.preventDefault();
-        this.setState({loading:true,errorMessage:''});
+        this.setState({
+            loading: true,
+            errorMessage: '',
+            successMessage: '',
+            statusMessage: 'Checking the event form, wallet, and deployed contract configuration.'
+        });
         try {
             if (!contractAddress || !createEventInstance) {
                 throw new Error('Set NEXT_PUBLIC_DIAMOND_ADDRESS in .env before creating events.');
@@ -42,6 +63,9 @@ class EventNew extends Component {
             }
 
             const accounts = await web3.eth.getAccounts();
+            if (!accounts.length) {
+                throw new Error('Connect a wallet in MetaMask before creating an event.');
+            }
             const chainId = await web3.eth.getChainId();
             const codeAtAddress = await web3.eth.getCode(contractAddress);
             if (!codeAtAddress || codeAtAddress === '0x') {
@@ -68,6 +92,10 @@ class EventNew extends Component {
             // Determine which signature is actually available on the deployed contract by estimating gas first.
             let methodToSend = null;
             let estimatedGas = null;
+
+            this.setState({
+                statusMessage: 'Connected contract found. Estimating gas and checking the available create-event method.'
+            });
 
             try {
                 const modernMethod = createEventInstance.methods
@@ -104,17 +132,30 @@ class EventNew extends Component {
                 throw new Error('Unable to compute safe gas for createEvent transaction.');
             }
 
-            await methodToSend.send({ from: accounts[0], gas: safeGas });
-            Router.pushRoute('/admin/dashboard');
+            this.setState({
+                statusMessage: 'Submitting the event creation transaction. Confirm it in MetaMask to deploy the event contract.'
+            });
+
+            const result = await methodToSend.send({ from: accounts[0], gas: safeGas });
+            const createdEventAddress = result?.events?.EventCreated?.returnValues?.eventAddress;
+            const successMessage = createdEventAddress
+                ? `Event "${this.state.eventName}" created successfully. Contract: ${createdEventAddress}`
+                : `Event "${this.state.eventName}" created successfully.`;
+
+            this.setState({
+                successMessage,
+                statusMessage: 'Event created successfully. Redirecting to the admin events board.'
+            });
+            Router.pushRoute(`/admin/events?successMessage=${encodeURIComponent(successMessage)}`);
         } catch (err) {
-            let friendlyError = err.message;
+            let friendlyError = this.formatCreateEventError(err);
             if (friendlyError.includes('VM Exception while processing transaction: revert')) {
                 friendlyError = 'Transaction reverted. Common causes: ticket supply too high, invalid price/supply, or contract version mismatch. Try smaller supply (<=1000) and retry.';
             }
             if (friendlyError.toLowerCase().includes('exceeds block gas limit')) {
                 friendlyError = 'Transaction gas exceeds current network block limit. Reduce ticket supply and retry (try 50-200 first), or increase Ganache block gas limit.';
             }
-            this.setState({ errorMessage: friendlyError });
+            this.setState({ errorMessage: friendlyError, statusMessage: '' });
         }
         this.setState({loading:false});
     };
@@ -125,6 +166,8 @@ class EventNew extends Component {
                 <h3>Create an Event</h3>
 
                 <Form onSubmit={this.onSubmit} error={!!this.state.errorMessage}>
+                    {this.state.statusMessage ? <Message info header="Creation status" content={this.state.statusMessage} /> : null}
+                    {this.state.successMessage ? <Message success header="Event created" content={this.state.successMessage} /> : null}
                     <Form.Field>
                         <label>Event Name</label>
                         <Input
@@ -163,7 +206,7 @@ class EventNew extends Component {
                             onChange={event => this.setState({ ticketSupply: event.target.value})}
                         />
                     </Form.Field>
-                    <Message error header="Oops!" content={this.state.errorMessage} />
+                    <Message error header="Event creation failed" content={this.state.errorMessage} />
                     <Button loading={this.state.loading} primary>Create!</Button>
                 </Form>
             </Layout>

@@ -24,7 +24,9 @@ class ValidateTicket extends Component {
         decodedQrText: '',
         loadingAction: '',
         errorMessage: '',
-        successMessage: ''
+        successMessage: '',
+        statusMessage: '',
+        statusHeader: ''
     };
 
     getEventInstance() {
@@ -162,7 +164,7 @@ class ValidateTicket extends Component {
             throw new Error('Ticket owner does not match QR owner data.');
         }
 
-        return `Ticket #${payload.ticketId} is valid and unused.`;
+        return `Ticket #${payload.ticketId} is valid and unused. Current owner: ${snapshot.owner}`;
     };
 
     validateByTicketId = async () => {
@@ -199,9 +201,17 @@ class ValidateTicket extends Component {
 
     markTicketAsUsed = async (ticketId) => {
         await this.assertTicketIsSoldAndUnused(ticketId);
+        this.setState({
+            statusHeader: 'Entry status',
+            statusMessage: `Checking manager wallet access for ticket #${ticketId}.`
+        });
         const { eventInstance, activeAccount, managerAddress } = await this.assertManagerWallet();
 
         try {
+            this.setState({
+                statusHeader: 'Entry status',
+                statusMessage: `Manager wallet verified. Confirm the on-chain use transaction for ticket #${ticketId} in MetaMask.`
+            });
             await web3.eth.call({
                 to: this.props.contractAddress,
                 from: activeAccount,
@@ -217,7 +227,7 @@ class ValidateTicket extends Component {
                 gas: 300000
             });
             const usedTicketId = result.events?.TicketUsed?.returnValues?.ticketId ?? ticketId;
-            return `Ticket #${usedTicketId} was marked as used successfully.`;
+            return `Ticket #${usedTicketId} was marked as used successfully. Entry is now locked to prevent ticket reuse.`;
         } catch (error) {
             throw new Error(this.formatUseTicketError(error, managerAddress));
         }
@@ -249,17 +259,69 @@ class ValidateTicket extends Component {
         return results[0].rawValue;
     };
 
+    getActionStatus = (loadingAction) => {
+        const actionCopy = {
+            'validate-payload': {
+                header: 'Validation status',
+                message: 'Checking the QR payload against the selected event contract and current ticket state.'
+            },
+            'use-payload': {
+                header: 'Entry status',
+                message: 'Validating the QR payload and preparing the on-chain ticket-use transaction.'
+            },
+            'validate-ticket-id': {
+                header: 'Validation status',
+                message: 'Checking whether the entered ticket ID exists, is sold, and is still unused.'
+            },
+            'use-ticket-id': {
+                header: 'Entry status',
+                message: 'Checking the ticket ID and preparing the wallet confirmation needed to mark it used.'
+            },
+            'validate-uploaded-qr': {
+                header: 'Validation status',
+                message: 'Reviewing the decoded QR payload and checking ticket ownership and usage state.'
+            },
+            'use-uploaded-qr': {
+                header: 'Entry status',
+                message: 'Reviewing the uploaded QR payload and preparing the use-ticket transaction.'
+            },
+            'decode-qr': {
+                header: 'QR scan status',
+                message: 'Scanning the uploaded image for a QR code payload.'
+            }
+        };
+
+        return actionCopy[loadingAction] || {
+            header: 'Status',
+            message: 'Processing your request.'
+        };
+    };
+
     runAction = async (loadingAction, callback) => {
-        this.setState({ loadingAction, errorMessage: '', successMessage: '' });
+        const actionStatus = this.getActionStatus(loadingAction);
+
+        this.setState({
+            loadingAction,
+            errorMessage: '',
+            successMessage: '',
+            statusHeader: actionStatus.header,
+            statusMessage: actionStatus.message
+        });
 
         try {
             const successMessage = await callback();
-            this.setState({ successMessage });
+            this.setState({ successMessage, loadingAction: '' });
         } catch (error) {
-            this.setState({ errorMessage: this.extractRpcErrorMessage(error) });
+            this.setState({
+                errorMessage: this.extractRpcErrorMessage(error),
+                loadingAction: '',
+                statusHeader: '',
+                statusMessage: ''
+            });
+            return;
         }
 
-        this.setState({ loadingAction: '' });
+        this.setState({ loadingAction: '', statusHeader: '', statusMessage: '' });
     };
 
     onValidateByQrPayload = async (event) => {
@@ -292,16 +354,26 @@ class ValidateTicket extends Component {
             return;
         }
 
-        this.setState({ loadingAction: 'decode-qr', errorMessage: '', successMessage: '' });
+        const decodeStatus = this.getActionStatus('decode-qr');
+        this.setState({
+            loadingAction: 'decode-qr',
+            errorMessage: '',
+            successMessage: '',
+            statusHeader: decodeStatus.header,
+            statusMessage: decodeStatus.message
+        });
 
         try {
             const decodedQrText = await this.decodeQrFromImage(file);
             this.setState({
                 decodedQrText,
-                qrPayload: decodedQrText
+                qrPayload: decodedQrText,
+                successMessage: 'QR image decoded successfully. Review the payload below, then validate it or mark the ticket used.',
+                statusHeader: '',
+                statusMessage: ''
             });
         } catch (error) {
-            this.setState({ errorMessage: error.message });
+            this.setState({ errorMessage: error.message, statusHeader: '', statusMessage: '' });
         }
 
         this.setState({ loadingAction: '' });
@@ -352,6 +424,9 @@ class ValidateTicket extends Component {
                         </div>
                     </section>
 
+                    {this.state.statusMessage ? (
+                        <Message info header={this.state.statusHeader || 'Status'} content={this.state.statusMessage} />
+                    ) : null}
                     {this.state.errorMessage ? (
                         <Message error header="Action failed" content={this.state.errorMessage} />
                     ) : null}
