@@ -7,38 +7,65 @@ class LoginPortal extends Component {
     render() {
         return (
             <Layout>
-                <div className="tm-hub-page">
-                    <section className="hero-panel">
-                        <div className="hero-copy">
-                            <h1>EventCoin Commerce Hub</h1>
-                            <p className="hero-description">
-                                A full event ticketing commerce platform with role-based portals, checkout, barcode tickets, and validation.
-                            </p>
-                            <div className="hero-tags">
-                                <span className="tag">CLIENT CHECKOUT</span>
-                                <span className="tag">ADMIN OPS</span>
-                                <span className="tag">BARCODE VALIDATION</span>
+                <div className="tm-home-page">
+                    <section className="hero-shell">
+                        <div className="hero-panel">
+                            <div className="hero-copy">
+                                <span className="eyebrow">LIVE EVENT PLATFORM</span>
+                                <h1>EventCoin</h1>
+                                <p className="hero-description">
+                                    Modern ticketing with bold event discovery, client checkout, barcode entry, and admin control in one fast portal.
+                                </p>
+                                <div className="hero-actions">
+                                    <Link route="/client/login" legacyBehavior>
+                                        <a>
+                                            <Button primary size="large" icon labelPosition="left" className="tm-btn tm-btn-primary">
+                                                <Icon name="ticket" />
+                                                Explore Events
+                                            </Button>
+                                        </a>
+                                    </Link>
+                                    <Link route="/admin/login" legacyBehavior>
+                                        <a>
+                                            <Button size="large" icon labelPosition="left" className="tm-btn tm-btn-secondary">
+                                                <Icon name="setting" />
+                                                Open Admin
+                                            </Button>
+                                        </a>
+                                    </Link>
+                                </div>
+                                <div className="hero-tags">
+                                    <span className="tag">SMART TICKETS</span>
+                                    <span className="tag">CLIENT PORTAL</span>
+                                    <span className="tag">ENTRY CONTROL</span>
+                                </div>
                             </div>
-                        </div>
-                        <div className="hero-side-card">
-                            <p className="side-kicker">Quick Start</p>
-                            <h3>Choose a Portal</h3>
-                            <p>Select your role below to enter your dedicated Ticketmaster-inspired experience.</p>
-                            <div className="side-list">
-                                <span><Icon name="check circle" /> Secure wallet-based access</span>
-                                <span><Icon name="check circle" /> Live event inventory</span>
-                                <span><Icon name="check circle" /> Instant barcode workflows</span>
+
+                            <div className="hero-stage-card">
+                                <div className="stage-top">
+                                    <span className="stage-pill">Live Platform</span>
+                                    <span className="stage-status">Live</span>
+                                </div>
+                                <h3>Built for modern event operations</h3>
+                                <p className="stage-description">
+                                    EventCoin brings client ticket access and admin control into one polished live-events platform with a faster, cleaner first impression.
+                                </p>
                             </div>
                         </div>
                     </section>
 
                     <section className="portal-grid">
-                        <article className="portal-card">
+                        <article className="portal-card admin-card">
                             <div className="card-head">
                                 <span className="pill admin">Admin</span>
                                 <h3>Admin Portal</h3>
                             </div>
-                            <p>Create events, manage tickets, and validate barcode tickets from an operations-focused dashboard.</p>
+                            <p>Launch events, monitor activity, validate tickets, and run venue operations from a control-room dashboard.</p>
+                            <div className="card-points">
+                                <span>Audit logs</span>
+                                <span>Client management</span>
+                                <span>Ticket validation</span>
+                            </div>
                             <Link route="/admin/login" legacyBehavior>
                                 <a>
                                     <Button primary icon labelPosition="left" className="tm-btn">
@@ -49,12 +76,17 @@ class LoginPortal extends Component {
                             </Link>
                         </article>
 
-                        <article className="portal-card">
+                        <article className="portal-card client-card">
                             <div className="card-head">
                                 <span className="pill client">Client</span>
                                 <h3>Client Portal</h3>
                             </div>
-                            <p>Explore events, purchase tickets, and view barcode tickets instantly with a modern storefront flow.</p>
+                            <p>Sign in, discover events, purchase seats, and keep barcode tickets ready for entry from one sleek account flow.</p>
+                            <div className="card-points">
+                                <span>Event discovery</span>
+                                <span>Wallet checkout</span>
+                                <span>Barcode wallet</span>
+                            </div>
                             <Link route="/client/login" legacyBehavior>
                                 <a>
                                     <Button color="teal" icon labelPosition="left" className="tm-btn client-btn">
@@ -67,46 +99,74 @@ class LoginPortal extends Component {
                     </section>
                 </div>
                 <style jsx>{`
-                    .tm-hub-page {
+                    .tm-home-page {
                         display: flex;
                         flex-direction: column;
-                        gap: 16px;
+                        gap: 18px;
                         font-family: 'Nunito Sans', sans-serif;
                     }
-                    .hero-panel {
-                        display: grid;
-                        grid-template-columns: 1.2fr 0.8fr;
-                        gap: 16px;
-                        padding: 26px;
-                        border-radius: 24px;
-                        background:
-                            radial-gradient(circle at top right, rgba(0, 185, 242, 0.24), transparent 30%),
-                            linear-gradient(125deg, #00112c 0%, #002d72 55%, #026cdf 100%);
-                        color: white;
-                        box-shadow: 0 24px 48px rgba(0, 32, 96, 0.22);
+                    .hero-shell {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 14px;
                     }
-                    .kicker {
+                    .hero-panel {
+                        position: relative;
+                        overflow: hidden;
+                        display: grid;
+                        grid-template-columns: 1.15fr 0.85fr;
+                        gap: 18px;
+                        padding: 30px;
+                        border-radius: 28px;
+                        background:
+                            radial-gradient(circle at 20% 10%, rgba(65, 105, 225, 0.28), transparent 28%),
+                            radial-gradient(circle at 90% 20%, rgba(0, 204, 255, 0.24), transparent 24%),
+                            linear-gradient(135deg, #071127 0%, #0c2b68 45%, #0a56d8 100%);
+                        color: white;
+                        box-shadow: 0 30px 60px rgba(3, 20, 67, 0.28);
+                    }
+                    .hero-panel::after {
+                        content: '';
+                        position: absolute;
+                        inset: auto -8% -18% auto;
+                        width: 340px;
+                        height: 340px;
+                        border-radius: 50%;
+                        background: radial-gradient(circle, rgba(255, 255, 255, 0.15), transparent 65%);
+                        pointer-events: none;
+                    }
+                    .eyebrow {
                         display: inline-block;
-                        margin-bottom: 8px;
-                        color: #7dd3fc;
-                        font-size: 0.74rem;
+                        margin-bottom: 12px;
+                        color: #d8f1ff;
+                        font-size: 0.76rem;
                         font-weight: 800;
                         letter-spacing: 0.12em;
                         text-transform: uppercase;
+                        padding: 8px 14px;
+                        border-radius: 999px;
+                        border: 1px solid rgba(255, 255, 255, 0.18);
+                        background: rgba(255, 255, 255, 0.08);
                     }
                     .hero-copy h1 {
                         margin: 0;
-                        font-family: 'Barlow Condensed', sans-serif;
-                        font-size: 3rem;
-                        text-transform: uppercase;
-                        letter-spacing: 0.03em;
+                        font-family: 'Syne', sans-serif;
+                        font-size: 4rem;
+                        letter-spacing: -0.04em;
+                        line-height: 0.95;
                     }
                     .hero-description {
-                        margin: 12px 0 14px;
+                        margin: 16px 0 18px;
                         color: #dbeafe;
                         line-height: 1.7;
-                        font-size: 1rem;
-                        max-width: 620px;
+                        font-size: 1.02rem;
+                        max-width: 560px;
+                    }
+                    .hero-actions {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 10px;
+                        margin-bottom: 18px;
                     }
                     .hero-tags {
                         display: flex;
@@ -115,61 +175,87 @@ class LoginPortal extends Component {
                     }
                     .tag {
                         border-radius: 999px;
-                        border: 1px solid rgba(255, 255, 255, 0.2);
-                        background: rgba(255, 255, 255, 0.12);
+                        border: 1px solid rgba(255, 255, 255, 0.16);
+                        background: rgba(255, 255, 255, 0.1);
+                        padding: 7px 12px;
+                        font-size: 0.72rem;
+                        font-weight: 800;
+                        letter-spacing: 0.09em;
+                    }
+                    .hero-stage-card {
+                        position: relative;
+                        z-index: 1;
+                        border-radius: 22px;
+                        border: 1px solid rgba(255, 255, 255, 0.16);
+                        background: linear-gradient(180deg, rgba(6, 19, 48, 0.72) 0%, rgba(6, 32, 86, 0.48) 100%);
+                        padding: 18px;
+                        backdrop-filter: blur(12px);
+                    }
+                    .stage-top {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 8px;
+                        margin-bottom: 12px;
+                    }
+                    .stage-pill,
+                    .stage-status {
+                        border-radius: 999px;
                         padding: 6px 12px;
                         font-size: 0.72rem;
                         font-weight: 800;
-                        letter-spacing: 0.06em;
-                    }
-                    .hero-side-card {
-                        border-radius: 18px;
-                        border: 1px solid rgba(255, 255, 255, 0.18);
-                        background: rgba(2, 23, 60, 0.45);
-                        padding: 16px;
-                    }
-                    .side-kicker {
-                        margin: 0 0 6px;
-                        color: #bae6fd;
-                        font-size: 0.72rem;
+                        letter-spacing: 0.08em;
                         text-transform: uppercase;
-                        letter-spacing: 0.1em;
-                        font-weight: 700;
                     }
-                    .hero-side-card h3 {
-                        margin: 0 0 8px;
+                    .stage-pill {
+                        color: #dbeafe;
+                        background: rgba(255, 255, 255, 0.08);
+                    }
+                    .stage-status {
+                        color: #082f49;
+                        background: #67e8f9;
+                    }
+                    .hero-stage-card h3 {
+                        margin: 0 0 14px;
                         font-family: 'Barlow Condensed', sans-serif;
                         font-size: 2rem;
                         text-transform: uppercase;
                         letter-spacing: 0.03em;
                     }
-                    .hero-side-card p {
+                    .stage-description {
                         margin: 0;
                         color: #dbeafe;
-                        line-height: 1.6;
-                    }
-                    .side-list {
-                        margin-top: 14px;
-                        display: flex;
-                        flex-direction: column;
-                        gap: 8px;
-                        font-size: 0.86rem;
-                        color: #e0f2fe;
+                        line-height: 1.7;
+                        max-width: 360px;
                     }
                     .portal-grid {
                         display: grid;
                         grid-template-columns: repeat(2, minmax(0, 1fr));
-                        gap: 14px;
+                        gap: 16px;
                     }
                     .portal-card {
-                        padding: 18px;
-                        border-radius: 20px;
+                        position: relative;
+                        overflow: hidden;
+                        padding: 22px;
+                        border-radius: 24px;
                         border: 1px solid #dbeafe;
                         background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-                        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+                        box-shadow: 0 18px 34px rgba(15, 23, 42, 0.08);
                         display: flex;
                         flex-direction: column;
                         gap: 12px;
+                    }
+                    .portal-card::before {
+                        content: '';
+                        position: absolute;
+                        inset: 0 0 auto 0;
+                        height: 5px;
+                    }
+                    .admin-card::before {
+                        background: linear-gradient(90deg, #1d4ed8 0%, #38bdf8 100%);
+                    }
+                    .client-card::before {
+                        background: linear-gradient(90deg, #0f766e 0%, #22c55e 100%);
                     }
                     .card-head h3 {
                         margin: 8px 0 0;
@@ -183,6 +269,23 @@ class LoginPortal extends Component {
                         margin: 0;
                         color: #475569;
                         line-height: 1.6;
+                    }
+                    .card-points {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 8px;
+                    }
+                    .card-points span {
+                        border-radius: 999px;
+                        padding: 6px 10px;
+                        background: #eff6ff;
+                        color: #1d4ed8;
+                        font-size: 0.74rem;
+                        font-weight: 700;
+                    }
+                    .client-card .card-points span {
+                        background: #ecfeff;
+                        color: #0f766e;
                     }
                     .pill {
                         display: inline-flex;
@@ -208,6 +311,15 @@ class LoginPortal extends Component {
                         font-weight: 800 !important;
                         letter-spacing: 0.04em;
                         margin-top: 4px;
+                        box-shadow: none !important;
+                    }
+                    :global(.tm-btn-primary.ui.button) {
+                        background: linear-gradient(90deg, #0ea5e9 0%, #2563eb 100%) !important;
+                    }
+                    :global(.tm-btn-secondary.ui.button) {
+                        background: rgba(255, 255, 255, 0.08) !important;
+                        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+                        color: #ffffff !important;
                     }
                     :global(.client-btn.ui.button) {
                         background: #14b8a6 !important;
@@ -218,7 +330,15 @@ class LoginPortal extends Component {
                             grid-template-columns: 1fr;
                         }
                         .hero-copy h1 {
-                            font-size: 2.3rem;
+                            font-size: 2.8rem;
+                        }
+                    }
+                    @media (max-width: 640px) {
+                        .hero-panel {
+                            padding: 18px;
+                        }
+                        .hero-actions {
+                            flex-direction: column;
                         }
                     }
                 `}</style>

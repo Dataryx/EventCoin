@@ -1,0 +1,88 @@
+<svg width="1200" height="820" viewBox="0 0 1200 820" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="820" rx="40" fill="url(#bg)"/>
+  <circle cx="161" cy="155" r="108" fill="url(#glowA)" fill-opacity="0.7"/>
+  <circle cx="1045" cy="126" r="145" fill="url(#glowB)" fill-opacity="0.58"/>
+  <circle cx="972" cy="722" r="211" fill="url(#glowC)" fill-opacity="0.52"/>
+  <path d="M0 571C171 502 297 467 433 489C559 509 638 585 767 603C898 621 1024 575 1200 498V820H0V571Z" fill="url(#crowd)"/>
+  <path d="M0 634C176 579 315 566 444 594C565 620 681 693 809 708C937 724 1060 687 1200 622V820H0V634Z" fill="#07162E" fill-opacity="0.9"/>
+  <g opacity="0.82">
+    <path d="M136 535L173 398L210 535H136Z" fill="#1CC8FF"/>
+    <path d="M211 589L246 460L281 589H211Z" fill="#1CC8FF"/>
+    <path d="M295 554L329 432L363 554H295Z" fill="#1CC8FF"/>
+    <path d="M1010 554L1044 432L1078 554H1010Z" fill="#1CC8FF"/>
+    <path d="M1088 587L1123 456L1158 587H1088Z" fill="#1CC8FF"/>
+  </g>
+  <g filter="url(#shadowTicket)">
+    <rect x="634" y="133" width="383" height="487" rx="32" transform="rotate(12 634 133)" fill="url(#ticketPanel)"/>
+    <rect x="687" y="198" width="277" height="214" rx="22" transform="rotate(12 687 198)" fill="#07192F"/>
+    <path d="M770 260H920" stroke="#1FC9FF" stroke-width="16" stroke-linecap="round"/>
+    <path d="M760 305H910" stroke="#355EFC" stroke-width="16" stroke-linecap="round"/>
+    <path d="M748 350H898" stroke="#1FC9FF" stroke-width="16" stroke-linecap="round"/>
+    <path d="M727 458L882 491" stroke="#E5F4FF" stroke-width="22" stroke-linecap="round"/>
+    <path d="M717 500L872 533" stroke="#E5F4FF" stroke-width="22" stroke-linecap="round"/>
+    <path d="M707 542L862 575" stroke="#E5F4FF" stroke-width="22" stroke-linecap="round"/>
+    <circle cx="728" cy="242" r="24" transform="rotate(12 728 242)" fill="#1CC8FF"/>
+  </g>
+  <g filter="url(#shadowPhone)">
+    <rect x="312" y="153" width="305" height="553" rx="38" fill="#091726"/>
+    <rect x="330" y="189" width="269" height="480" rx="28" fill="url(#phoneScreen)"/>
+    <rect x="368" y="244" width="194" height="122" rx="22" fill="rgba(255,255,255,0.08)"/>
+    <path d="M392 429H538" stroke="#D7EEFF" stroke-width="18" stroke-linecap="round"/>
+    <path d="M392 469H559" stroke="#8FCBFF" stroke-width="14" stroke-linecap="round"/>
+    <path d="M392 505H519" stroke="#8FCBFF" stroke-width="14" stroke-linecap="round"/>
+    <rect x="391" y="551" width="146" height="52" rx="26" fill="#18C7FE"/>
+    <path d="M432 577H497" stroke="#07192F" stroke-width="12" stroke-linecap="round"/>
+    <circle cx="466" cy="173" r="6" fill="#51739A"/>
+  </g>
+  <defs>
+    <filter id="shadowPhone" x="248" y="105" width="433" height="649" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="20"/>
+      <feGaussianBlur stdDeviation="32"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.0196078 0 0 0 0 0.0823529 0 0 0 0 0.180392 0 0 0 0.44 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_1" result="shape"/>
+    </filter>
+    <filter id="shadowTicket" x="571" y="92" width="529" height="591" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="18"/>
+      <feGaussianBlur stdDeviation="28"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.0196078 0 0 0 0 0.0823529 0 0 0 0 0.180392 0 0 0 0.38 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_1" result="shape"/>
+    </filter>
+    <linearGradient id="bg" x1="84" y1="73" x2="1088" y2="771" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#09182E"/>
+      <stop offset="0.48" stop-color="#0A3786"/>
+      <stop offset="1" stop-color="#0B64DA"/>
+    </linearGradient>
+    <linearGradient id="ticketPanel" x1="662" y1="151" x2="966" y2="598" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F9FCFF"/>
+      <stop offset="1" stop-color="#DDEEFF"/>
+    </linearGradient>
+    <linearGradient id="phoneScreen" x1="345" y1="207" x2="585" y2="649" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0C49A9"/>
+      <stop offset="1" stop-color="#0A1B36"/>
+    </linearGradient>
+    <linearGradient id="crowd" x1="600" y1="489" x2="600" y2="820" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#11274B"/>
+      <stop offset="1" stop-color="#081425"/>
+    </linearGradient>
+    <radialGradient id="glowA" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(161 155) rotate(90) scale(108)">
+      <stop stop-color="#1AD8FF"/>
+      <stop offset="1" stop-color="#1AD8FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowB" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1045 126) rotate(90) scale(145)">
+      <stop stop-color="#5A5BFF"/>
+      <stop offset="1" stop-color="#5A5BFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowC" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(972 722) rotate(90) scale(211)">
+      <stop stop-color="#19C9FF"/>
+      <stop offset="1" stop-color="#19C9FF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>

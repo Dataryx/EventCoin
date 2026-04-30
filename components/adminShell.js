@@ -82,7 +82,7 @@ const AdminShell = ({
                             <Icon name="ticket" />
                             <div>
                                 <h2>EventCoin</h2>
-                                <p>E-Commerce Admin</p>
+                                <p>Admin Control</p>
                             </div>
                         </div>
                         {navSections.map((section) => (
