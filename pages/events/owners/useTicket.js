@@ -1,10 +1,11 @@
 import React, { Component } from 'react';
-import { Form, Button, Input, Message } from 'semantic-ui-react';
+import { Form, Button, Input } from 'semantic-ui-react';
 import Layout from '../../../components/layout';
 import Event from '../../../ethereum/event';
 import web3 from '../../../ethereum/web3';
 import { Router } from '../../../routes';
 import { persistAuditLog } from '../../../ethereum/auditLog';
+import TopAlertStack from '../../../components/topAlertStack';
 
 class EventNew extends Component {
     static async getInitialProps(props) {
@@ -113,9 +114,26 @@ class EventNew extends Component {
         return (
             <Layout>
                 <h3>Use a Ticket</h3>
+                <TopAlertStack
+                    alerts={[
+                        this.state.statusMessage ? {
+                            id: 'use-ticket-status',
+                            type: 'info',
+                            header: 'Ticket use status',
+                            content: this.state.statusMessage,
+                            autoDismissMs: 0
+                        } : null,
+                        this.state.errorMessage ? {
+                            id: 'use-ticket-error',
+                            type: 'error',
+                            header: 'Ticket use failed',
+                            content: this.state.errorMessage,
+                            onDismiss: () => this.setState({ errorMessage: '' })
+                        } : null
+                    ]}
+                />
 
                 <Form onSubmit={this.onSubmit} error={!!this.state.errorMessage}>
-                    {this.state.statusMessage ? <Message info header="Ticket use status" content={this.state.statusMessage} /> : null}
                     <Form.Field>
                         <label>Ticket Id</label>
                         <Input
@@ -123,9 +141,6 @@ class EventNew extends Component {
                             onChange={event => this.setState({ ticketId: event.target.value })}
                         />
                     </Form.Field>
-                    {this.state.errorMessage && (
-                        <Message error header="Ticket use failed" content={this.state.errorMessage} />
-                    )}
                     <Button loading={this.state.loading} primary>Use!</Button>
                 </Form>
             </Layout>

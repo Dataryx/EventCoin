@@ -1,9 +1,10 @@
 import React, { Component } from 'react';
-import { Form, Button, Input, Message } from 'semantic-ui-react';
+import { Form, Button, Input } from 'semantic-ui-react';
 import Layout from '../../../components/layout';
 import Event from '../../../ethereum/event';
 import web3 from '../../../ethereum/web3';
 import { Router } from '../../../routes';
+import TopAlertStack from '../../../components/topAlertStack';
 
 class TransferTicket extends Component {
     static async getInitialProps(props) {
@@ -51,6 +52,17 @@ class TransferTicket extends Component {
         return (
             <Layout>
                 <h3>Transfer a Ticket</h3>
+                <TopAlertStack
+                    alerts={[
+                        this.state.errorMessage ? {
+                            id: 'transfer-ticket-error',
+                            type: 'error',
+                            header: 'Oops!',
+                            content: this.state.errorMessage,
+                            onDismiss: () => this.setState({ errorMessage: '' })
+                        } : null
+                    ]}
+                />
 
                 <Form onSubmit={this.onSubmit} error={!!this.state.errorMessage}>
                     <Form.Field>
@@ -67,9 +79,6 @@ class TransferTicket extends Component {
                             onChange={event => this.setState({ newOwner: event.target.value })}
                         />
                     </Form.Field>
-                    {this.state.errorMessage && (
-                        <Message error header="Oops!" content={this.state.errorMessage} />
-                    )}
                     <Button loading={this.state.loading} primary>Transfer!</Button>
                 </Form>
             </Layout>

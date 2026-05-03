@@ -1,10 +1,11 @@
 import React, { Component } from 'react';
-import { Form, Button, Message } from 'semantic-ui-react';
+import { Form, Button } from 'semantic-ui-react';
 import Layout from '../../../components/layout';
 import Event from '../../../ethereum/event';
 import web3 from '../../../ethereum/web3';
 import { parseTicketBarcodeValue } from '../../../ethereum/ticketBarcode';
 import { persistAuditLog } from '../../../ethereum/auditLog';
+import TopAlertStack from '../../../components/topAlertStack';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -548,6 +549,31 @@ class ValidateTicket extends Component {
         return (
             <Layout>
                 <div className="tm-validate-page">
+                    <TopAlertStack
+                        alerts={[
+                            this.state.statusMessage ? {
+                                id: 'validate-ticket-status',
+                                type: 'info',
+                                header: this.state.statusHeader || 'Status',
+                                content: this.state.statusMessage,
+                                autoDismissMs: 0
+                            } : null,
+                            this.state.errorMessage ? {
+                                id: 'validate-ticket-error',
+                                type: 'error',
+                                header: 'Action failed',
+                                content: this.state.errorMessage,
+                                onDismiss: () => this.setState({ errorMessage: '' })
+                            } : null,
+                            this.state.successMessage ? {
+                                id: 'validate-ticket-success',
+                                type: 'success',
+                                header: 'Action complete',
+                                content: this.state.successMessage,
+                                onDismiss: () => this.setState({ successMessage: '' })
+                            } : null
+                        ]}
+                    />
                     <section className="hero-panel">
                         <div className="hero-copy">
                             <span className="hero-kicker">Ticketmaster-style Admin</span>
@@ -566,16 +592,6 @@ class ValidateTicket extends Component {
                             <p className="side-note">Using a ticket sends an on-chain transaction and requires the event manager wallet in MetaMask.</p>
                         </div>
                     </section>
-
-                    {this.state.statusMessage ? (
-                        <Message info header={this.state.statusHeader || 'Status'} content={this.state.statusMessage} />
-                    ) : null}
-                    {this.state.errorMessage ? (
-                        <Message error header="Action failed" content={this.state.errorMessage} />
-                    ) : null}
-                    {this.state.successMessage ? (
-                        <Message success header="Action complete" content={this.state.successMessage} />
-                    ) : null}
 
                     <section className="workflow-grid">
                         <article className="workflow-card">

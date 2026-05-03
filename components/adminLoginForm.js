@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
-import { Button, Form, Message } from 'semantic-ui-react';
+import { Button, Form } from 'semantic-ui-react';
 import { Router } from '../routes';
 import { persistAuditLog } from '../ethereum/auditLog';
+import TopAlertStack from './topAlertStack';
 
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'admin@123';
@@ -69,35 +70,47 @@ class AdminLoginForm extends Component {
         const buttonLabel = this.props.buttonLabel || 'Log In';
 
         return (
-            <Form
-                className={this.props.className}
-                onSubmit={this.onSubmit}
-                error={!!this.state.errorMessage}
-            >
-                <Form.Input
-                    label="Username"
-                    placeholder="Enter admin username"
-                    value={this.state.username}
-                    onChange={(event) => this.setState({ username: event.target.value })}
+            <>
+                <TopAlertStack
+                    alerts={[
+                        this.state.errorMessage ? {
+                            id: 'admin-login-error',
+                            type: 'error',
+                            header: 'Login failed',
+                            content: this.state.errorMessage,
+                            onDismiss: () => this.setState({ errorMessage: '' })
+                        } : null
+                    ]}
                 />
-                <Form.Input
-                    label="Password"
-                    type="password"
-                    placeholder="Enter admin password"
-                    value={this.state.password}
-                    onChange={(event) => this.setState({ password: event.target.value })}
-                />
-                <Button
-                    primary={!this.props.buttonColor}
-                    color={this.props.buttonColor}
-                    fluid
-                    size="large"
-                    loading={this.state.loading}
+                <Form
+                    className={this.props.className}
+                    onSubmit={this.onSubmit}
+                    error={!!this.state.errorMessage}
                 >
-                    {buttonLabel}
-                </Button>
-                <Message error header="Login failed" content={this.state.errorMessage} />
-            </Form>
+                    <Form.Input
+                        label="Username"
+                        placeholder="Enter admin username"
+                        value={this.state.username}
+                        onChange={(event) => this.setState({ username: event.target.value })}
+                    />
+                    <Form.Input
+                        label="Password"
+                        type="password"
+                        placeholder="Enter admin password"
+                        value={this.state.password}
+                        onChange={(event) => this.setState({ password: event.target.value })}
+                    />
+                    <Button
+                        primary={!this.props.buttonColor}
+                        color={this.props.buttonColor}
+                        fluid
+                        size="large"
+                        loading={this.state.loading}
+                    >
+                        {buttonLabel}
+                    </Button>
+                </Form>
+            </>
         );
     }
 }

@@ -5,9 +5,10 @@ import Layout from '../../components/layout';
 import { Link } from '../../routes';
 import Event from '../../ethereum/event';
 import { getClientSession, isTicketOwnedByClient } from '../../ethereum/clientSession';
-import { reconcileClientTicketsForEvent } from '../../ethereum/clientTickets';
+import { ensureClientTicketStorageVersion, reconcileClientTicketsForEvent } from '../../ethereum/clientTickets';
 import ClientAccountDropdown from '../../components/clientAccountDropdown';
 import ClientWalletBalance from '../../components/clientWalletBalance';
+import { fetchEthUsdRate, formatEthFromWei, formatUsdFromWei } from '../../utils/ethPricing';
 
 class ClientDashboard extends Component {
     static async getInitialProps() {
@@ -23,7 +24,7 @@ class ClientDashboard extends Component {
                 return {
                     address,
                     name: summary[0],
-                    ticketPriceWei: parseInt(summary[1], 10) || 0,
+                    ticketPriceWei: summary[1] ? summary[1].toString() : '0',
                     ticketSupply: parseInt(summary[2], 10) || 0,
                     ticketsSold: parseInt(summary[3], 10) || 0,
                     description: summary[4] || '',
@@ -39,17 +40,21 @@ class ClientDashboard extends Component {
     state = {
         clientAccount: '',
         clientWallet: '',
+        ethUsdRate: null,
         searchTerm: '',
         selectedCategory: 'All Events',
         myTickets: []
     };
 
-    componentDidMount() {
+    async componentDidMount() {
+        const ethUsdRate = await fetchEthUsdRate();
+        this.setState({ ethUsdRate });
         this.loadClientTickets();
     }
 
     loadClientTickets = async () => {
         const session = getClientSession();
+        ensureClientTicketStorageVersion();
         const ticketKeys = Object.keys(window.localStorage).filter((key) => key.startsWith('clientTickets:'));
         const ticketGroups = await Promise.all(
             ticketKeys.map((key) => reconcileClientTicketsForEvent(key.split(':')[1], session))
@@ -413,9 +418,14 @@ class ClientDashboard extends Component {
                                             {isSoldOut ? 'STATUS' : 'FROM'}
                                         </p>
                                         {!isSoldOut ? (
-                                            <h4 style={{ margin: '4px 0 0', color: '#002060', fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1.7rem' }}>
-                                                ${event.ticketPriceWei}
-                                            </h4>
+                                            <div>
+                                                <h4 style={{ margin: '4px 0 0', color: '#002060', fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1.4rem' }}>
+                                                    {formatEthFromWei(event.ticketPriceWei)}
+                                                </h4>
+                                                <p style={{ margin: '2px 0 0', color: '#64748b', fontSize: '0.78rem', fontWeight: 700 }}>
+                                                    {formatUsdFromWei(event.ticketPriceWei, this.state.ethUsdRate)}
+                                                </p>
+                                            </div>
                                         ) : (
                                             <h4 className="sold-out-text" style={{ margin: '4px 0 0', color: '#ef4444', fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1.1rem' }}>
                                                 SOLD OUT

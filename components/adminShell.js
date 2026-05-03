@@ -2,6 +2,7 @@ import React from 'react';
 import { Button, Icon } from 'semantic-ui-react';
 import { Link, Router } from '../routes';
 import Layout from './layout';
+import { persistAuditLog } from '../ethereum/auditLog';
 
 const navSections = [
     {
@@ -11,6 +12,7 @@ const navSections = [
             { label: 'Events', route: '/admin/events' },
             { label: 'Purchased Tickets', route: '/admin/purchased-tickets' },
             { label: 'Ticket Validation', route: '/admin/ticket-validation' },
+            { label: 'Transfer Ticket', route: '/admin/ticket-transfer' },
             { label: 'Clients', route: '/admin/clients' }
         ]
     },
@@ -37,6 +39,34 @@ const AdminShell = ({
 }) => {
     const [checkedAuth, setCheckedAuth] = React.useState(false);
     const [isAuthorized, setIsAuthorized] = React.useState(false);
+
+    const handleLogout = React.useCallback(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        const adminAccountValue = window.localStorage.getItem('adminAccount') || walletAddress || 'Admin';
+
+        persistAuditLog({
+            actorName: adminAccountValue,
+            actorRole: 'admin',
+            actorId: adminAccountValue,
+            action: 'Admin logout',
+            status: 'success',
+            entityType: 'session',
+            entityId: adminAccountValue,
+            route: '/admin/login',
+            details: {
+                source: activeRoute || 'admin-shell'
+            }
+        });
+
+        window.localStorage.removeItem('adminAuthenticated');
+        window.localStorage.removeItem('adminAccount');
+        setIsAuthorized(false);
+        setCheckedAuth(true);
+        Router.pushRoute('/admin/login');
+    }, [activeRoute, walletAddress]);
 
     React.useEffect(() => {
         if (typeof window === 'undefined') {
@@ -78,13 +108,15 @@ const AdminShell = ({
             <div className="admin-shell">
                 <aside className="sidebar">
                     <div>
-                        <div className="logo-block">
-                            <Icon name="ticket" />
-                            <div>
-                                <h2>EventCoin</h2>
-                                <p>Admin Control</p>
-                            </div>
-                        </div>
+                        <Link route="/admin/dashboard" legacyBehavior>
+                            <a className="logo-block">
+                                <Icon name="ticket" />
+                                <div>
+                                    <h2>EventCoin</h2>
+                                    <p>Admin Control</p>
+                                </div>
+                            </a>
+                        </Link>
                         {navSections.map((section) => (
                             <div className="nav-group" key={section.title}>
                                 <p className="group-title">{section.title}</p>
@@ -101,6 +133,17 @@ const AdminShell = ({
                     <div className="wallet-panel">
                         <p className="group-title">Admin Session</p>
                         <p className="wallet-address">{walletAddress || 'Not logged in'}</p>
+                        <Button
+                            type="button"
+                            basic
+                            inverted
+                            size="small"
+                            className="logout-btn"
+                            onClick={handleLogout}
+                        >
+                            <Icon name="sign-out" />
+                            Logout
+                        </Button>
                     </div>
                 </aside>
 
@@ -152,6 +195,7 @@ const AdminShell = ({
                     gap: 10px;
                     align-items: center;
                     margin-bottom: 18px;
+                    color: #f8fafc;
                 }
                 .logo-block h2,
                 .content h1,
@@ -198,6 +242,11 @@ const AdminShell = ({
                     font-size: 0.78rem;
                     word-break: break-word;
                     color: #e2e8f0;
+                }
+                .logout-btn {
+                    margin-top: 10px !important;
+                    width: 100%;
+                    justify-content: center;
                 }
                 .content {
                     background: #f8fafc;

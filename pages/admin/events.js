@@ -4,6 +4,9 @@ import { contractAddress, getDeployedEventsInstance } from '../../ethereum/facto
 import AdminShell from '../../components/adminShell';
 import { Link } from '../../routes';
 import Event from '../../ethereum/event';
+import { applyStoredEventOverride } from '../../ethereum/eventOverrides';
+import { fetchEthUsdRate, formatEthFromWei, formatUsdFromWei, multiplyWeiAmount } from '../../utils/ethPricing';
+import TopAlertStack from '../../components/topAlertStack';
 
 class AdminEvents extends Component {
     static async getInitialProps(props) {
@@ -15,19 +18,19 @@ class AdminEvents extends Component {
 
         try {
             const addresses = await getDeployedEventsInstance.methods.getDeployedEvents().call();
-            const events = await Promise.all(addresses.map(async (address) => {
+            const events = await Promise.all(addresses.map(async (address, deploymentIndex) => {
                 const event = Event(address);
                 const summary = await event.methods.getEventDetails().call();
-                const ticketPriceWei = parseInt(summary[1], 10) || 0;
+                const ticketPriceWei = summary[1] ? summary[1].toString() : '0';
                 const ticketSupply = parseInt(summary[2], 10) || 0;
                 const ticketsSold = parseInt(summary[3], 10) || 0;
 
-                let validations = 0;
+                let ticketsUsed = 0;
                 for (let ticketId = 1; ticketId <= ticketsSold; ticketId += 1) {
                     try {
                         const ticket = await event.methods.tickets(ticketId).call();
                         const isUsed = ticket.isUsed || ticket[1];
-                        if (isUsed) validations += 1;
+                        if (isUsed) ticketsUsed += 1;
                     } catch (e) {
                         // Ignore invalid ticket lookups and continue.
                     }
@@ -35,13 +38,14 @@ class AdminEvents extends Component {
 
                 return {
                     address,
+                    deploymentIndex,
                     name: summary[0],
                     ticketPriceWei,
                     ticketSupply,
                     ticketsSold,
                     description: summary[4] || '',
                     eventDate: summary[5] || '',
-                    validations
+                    ticketsUsed
                 };
             }));
 
@@ -53,17 +57,37 @@ class AdminEvents extends Component {
 
     state = {
         adminAccount: '',
+        events: this.props.events,
         searchTerm: '',
-        sortOrder: 'latest'
+        sortOrder: 'latest',
+        ethUsdRate: null,
+        successMessage: this.props.successMessage || ''
     };
 
-    componentDidMount() {
-        this.setState({ adminAccount: window.localStorage.getItem('adminAccount') || '' });
+    async componentDidMount() {
+        const ethUsdRate = await fetchEthUsdRate();
+        this.setState({
+            adminAccount: window.localStorage.getItem('adminAccount') || '',
+            events: this.props.events.map((event) => applyStoredEventOverride(event)),
+            ethUsdRate
+        });
+    }
+
+    componentDidUpdate(prevProps) {
+        if (prevProps.successMessage !== this.props.successMessage) {
+            this.setState({ successMessage: this.props.successMessage || '' });
+        }
+
+        if (prevProps.events !== this.props.events) {
+            this.setState({
+                events: this.props.events.map((event) => applyStoredEventOverride(event))
+            });
+        }
     }
 
     getFilteredEvents() {
         const { searchTerm, sortOrder } = this.state;
-        let events = [...this.props.events];
+        let events = [...this.state.events];
 
         if (searchTerm.trim()) {
             const key = searchTerm.trim().toLowerCase();
@@ -73,7 +97,14 @@ class AdminEvents extends Component {
             );
         }
 
-        events.sort((a, b) => (sortOrder === 'latest' ? b.address.localeCompare(a.address) : a.address.localeCompare(b.address)));
+        events.sort((a, b) => {
+            const leftIndex = Number.isFinite(a.deploymentIndex) ? a.deploymentIndex : 0;
+            const rightIndex = Number.isFinite(b.deploymentIndex) ? b.deploymentIndex : 0;
+
+            return sortOrder === 'latest'
+                ? rightIndex - leftIndex
+                : leftIndex - rightIndex;
+        });
         return events;
     }
 
@@ -85,9 +116,8 @@ class AdminEvents extends Component {
         return Math.min(Math.round((event.ticketsSold / event.ticketSupply) * 100), 100);
     }
 
-    formatCurrency(amount) {
-        const numericAmount = Number(amount) || 0;
-        return `$${numericAmount.toLocaleString('en-US')}`;
+    getEventRevenueWei(event) {
+        return multiplyWeiAmount(event.ticketPriceWei, event.ticketsSold);
     }
 
     formatEventSchedule(event) {
@@ -145,14 +175,14 @@ class AdminEvents extends Component {
                             className="active-event-grid"
                             style={{
                                 display: 'grid',
-                                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
                                 gap: '14px',
                                 alignItems: 'stretch'
                             }}
                         >
                             {activeEvents.map((event, index) => {
                                 const sellThrough = this.getSellThroughPercent(event);
-                                const revenueAmount = event.ticketPriceWei * event.ticketsSold;
+                                const revenueWei = this.getEventRevenueWei(event);
                                 const schedule = this.formatEventSchedule(event);
                                 const badgeLabel = sellThrough < 25 ? 'PRESALE' : 'LIVE';
 
@@ -284,7 +314,7 @@ class AdminEvents extends Component {
                                             >
                                                 <strong style={{ color: '#0f172a', fontSize: '0.92rem' }}>EventCoin</strong>
                                                 <span style={{ color: '#334155', fontSize: '0.76rem', lineHeight: 1.4 }}>
-                                                    {event.ticketsSold}/{event.ticketSupply} sold • {this.formatCurrency(revenueAmount)}
+                                                    {event.ticketsSold}/{event.ticketSupply} sold | {formatUsdFromWei(revenueWei, this.state.ethUsdRate)} | {formatEthFromWei(revenueWei)} | {event.ticketsUsed} used
                                                 </span>
                                             </div>
                                             <Link route={`/events/${event.address}/validate`} legacyBehavior>
@@ -299,6 +329,20 @@ class AdminEvents extends Component {
                                                     }}
                                                 >
                                                     Validate
+                                                </a>
+                                            </Link>
+                                            <Link route={`/events/${event.address}/edit`} legacyBehavior>
+                                                <a
+                                                    className="poster-footer-link"
+                                                    style={{
+                                                        color: '#0f766e',
+                                                        fontSize: '0.74rem',
+                                                        fontWeight: 800,
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '0.05em'
+                                                    }}
+                                                >
+                                                    Edit
                                                 </a>
                                             </Link>
                                         </div>
@@ -316,26 +360,27 @@ class AdminEvents extends Component {
                             <span className="group-count">{soldOutEvents.length} archived performers</span>
                         </div>
                         <div
-                            className="active-event-grid"
+                            className="active-event-grid sold-out-event-grid"
                             style={{
                                 display: 'grid',
-                                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 360px))',
                                 gap: '14px',
-                                alignItems: 'stretch'
+                                alignItems: 'stretch',
+                                justifyContent: 'flex-start'
                             }}
                         >
                             {soldOutEvents.map((event) => {
-                                const revenueAmount = event.ticketPriceWei * event.ticketsSold;
+                                const revenueWei = this.getEventRevenueWei(event);
                                 const schedule = this.formatEventSchedule(event);
 
                                 return (
                                     <article
                                         key={event.address}
-                                        className="poster-event-card sold-out-card"
+                                        className="poster-event-card"
                                         style={{
-                                            background: 'linear-gradient(180deg, #ffffff 0%, #fff7f7 100%)',
+                                            background: '#fff',
                                             borderRadius: '16px',
-                                            border: '1px solid #fecaca',
+                                            border: '1px solid #dbe4f0',
                                             boxShadow: '0 12px 28px rgba(15, 23, 42, 0.08)',
                                             display: 'flex',
                                             flexDirection: 'column',
@@ -343,24 +388,149 @@ class AdminEvents extends Component {
                                             overflow: 'hidden'
                                         }}
                                     >
-                                        <div className="poster-header">
-                                            <span className="poster-badge sold-out-badge">SOLD OUT</span>
+                                        <div className="poster-header" style={{ padding: '16px 18px 0' }}>
+                                            <span
+                                                className="poster-badge"
+                                                style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    background: 'linear-gradient(135deg, #8b2cf5 0%, #d946ef 100%)',
+                                                    color: '#fff',
+                                                    minWidth: '88px',
+                                                    borderRadius: '12px',
+                                                    padding: '8px 12px',
+                                                    fontSize: '0.78rem',
+                                                    fontWeight: 800,
+                                                    letterSpacing: '0.04em'
+                                                }}
+                                            >
+                                                SOLD OUT
+                                            </span>
                                         </div>
-                                        <div className="poster-body">
-                                            <p className="poster-schedule">{schedule}</p>
+                                        <div
+                                            className="poster-body"
+                                            style={{
+                                                padding: '14px 18px 10px',
+                                                minHeight: '156px',
+                                                display: 'flex',
+                                                flexDirection: 'column'
+                                            }}
+                                        >
+                                            <p
+                                                className="poster-schedule"
+                                                style={{
+                                                    margin: '0 0 10px',
+                                                    color: '#54657b',
+                                                    fontSize: '0.82rem',
+                                                    fontWeight: 700,
+                                                    letterSpacing: '0.08em',
+                                                    textTransform: 'uppercase'
+                                                }}
+                                            >
+                                                {schedule}
+                                            </p>
                                             <Link route={`/events/${event.address}`} legacyBehavior>
-                                                <a className="poster-title">{event.name || 'Unnamed Event'}</a>
+                                                <a
+                                                    className="poster-title"
+                                                    style={{
+                                                        display: 'inline-block',
+                                                        marginBottom: '10px',
+                                                        color: '#003ba8',
+                                                        fontSize: '1rem',
+                                                        lineHeight: 1.4,
+                                                        fontWeight: 800,
+                                                        textDecoration: 'underline',
+                                                        textDecorationThickness: '2px',
+                                                        textUnderlineOffset: '3px',
+                                                        minHeight: '84px'
+                                                    }}
+                                                >
+                                                    {event.name || 'Unnamed Event'}
+                                                </a>
                                             </Link>
-                                            <p className="poster-location">{this.getEventLocation(event)}</p>
+                                            <p
+                                                className="poster-location"
+                                                style={{
+                                                    margin: 0,
+                                                    color: '#1e293b',
+                                                    fontSize: '0.88rem',
+                                                    lineHeight: 1.45,
+                                                    minHeight: '48px'
+                                                }}
+                                            >
+                                                {this.getEventLocation(event)}
+                                            </p>
                                         </div>
-                                        <div className="poster-footer">
-                                            <div className="sponsor-mark">EC</div>
-                                            <div className="poster-footer-copy">
-                                                <strong>EventCoin</strong>
-                                                <span>{event.ticketsSold}/{event.ticketSupply} sold - {this.formatCurrency(revenueAmount)} - {event.validations} validated</span>
+                                        <div
+                                            className="poster-footer"
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '10px',
+                                                padding: '14px 18px 16px',
+                                                borderTop: '1px solid #dbe4f0',
+                                                marginTop: 'auto'
+                                            }}
+                                        >
+                                            <div
+                                                className="sponsor-mark"
+                                                style={{
+                                                    width: '42px',
+                                                    height: '42px',
+                                                    borderRadius: '999px',
+                                                    background: 'linear-gradient(135deg, #2058e8 0%, #426dff 100%)',
+                                                    color: '#fff',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontWeight: 800,
+                                                    flexShrink: 0
+                                                }}
+                                            >
+                                                EC
                                             </div>
-                                            <Link route={`/events/${event.address}`} legacyBehavior>
-                                                <a className="poster-footer-link">Open Dashboard</a>
+                                            <div
+                                                className="poster-footer-copy"
+                                                style={{
+                                                    minWidth: 0,
+                                                    flex: 1,
+                                                    display: 'flex',
+                                                    flexDirection: 'column'
+                                                }}
+                                            >
+                                                <strong style={{ color: '#0f172a', fontSize: '0.92rem' }}>EventCoin</strong>
+                                                <span style={{ color: '#334155', fontSize: '0.76rem', lineHeight: 1.4 }}>
+                                                    {event.ticketsSold}/{event.ticketSupply} sold | {formatUsdFromWei(revenueWei, this.state.ethUsdRate)} | {formatEthFromWei(revenueWei)} | {event.ticketsUsed} used
+                                                </span>
+                                            </div>
+                                            <Link route={`/events/${event.address}/validate`} legacyBehavior>
+                                                <a
+                                                    className="poster-footer-link"
+                                                    style={{
+                                                        color: '#003ba8',
+                                                        fontSize: '0.74rem',
+                                                        fontWeight: 800,
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '0.05em'
+                                                    }}
+                                                >
+                                                    Validate
+                                                </a>
+                                            </Link>
+                                            <Link route={`/events/${event.address}/edit`} legacyBehavior>
+                                                <a
+                                                    className="poster-footer-link"
+                                                    style={{
+                                                        color: '#0f766e',
+                                                        fontSize: '0.74rem',
+                                                        fontWeight: 800,
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '0.05em'
+                                                    }}
+                                                >
+                                                    Edit
+                                                </a>
                                             </Link>
                                         </div>
                                     </article>
@@ -391,9 +561,18 @@ class AdminEvents extends Component {
                     </Link>
                 )}
                 heroTitle="Live Event Contracts"
-                heroDescription={`${this.props.events.length} deployed event contracts ready for admin access.`}
+                heroDescription={`${this.state.events.length} deployed event contracts ready for admin access.`}
             >
-                {this.props.successMessage ? <Message success content={this.props.successMessage} style={{ marginBottom: '14px' }} /> : null}
+                <TopAlertStack
+                    alerts={[
+                        this.state.successMessage ? {
+                            id: 'admin-events-success',
+                            type: 'success',
+                            content: this.state.successMessage,
+                            onDismiss: () => this.setState({ successMessage: '' })
+                        } : null
+                    ]}
+                />
                 <section className="panel event-panel">
                     <div className="panel-header">
                         <div className="panel-heading-copy">
@@ -562,10 +741,6 @@ class AdminEvents extends Component {
                         min-height: 100%;
                         transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
                     }
-                    .poster-event-card.sold-out-card {
-                        border-color: #fecaca;
-                        background: linear-gradient(180deg, #ffffff 0%, #fff7f7 100%);
-                    }
                     .poster-event-card:hover,
                     .event-ops-card:hover {
                         transform: translateY(-2px);
@@ -587,9 +762,6 @@ class AdminEvents extends Component {
                         font-size: 0.78rem;
                         font-weight: 800;
                         letter-spacing: 0.04em;
-                    }
-                    .poster-badge.sold-out-badge {
-                        background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
                     }
                     .poster-body {
                         padding: 14px 18px 10px;

@@ -3,14 +3,17 @@ import { Message, Button, Icon } from 'semantic-ui-react';
 import Layout from '../../components/layout';
 import Event from '../../ethereum/event';
 import { getClientSession, isTicketOwnedByClient } from '../../ethereum/clientSession';
-import { reconcileClientTicketsForEvent } from '../../ethereum/clientTickets';
+import { ensureClientTicketStorageVersion, reconcileClientTicketsForEvent } from '../../ethereum/clientTickets';
 import { Link } from '../../routes';
 import TicketBarcode from '../../components/ticketBarcode';
+import { fetchEthUsdRate, formatEthFromWei, formatUsdFromWei } from '../../utils/ethPricing';
+import TopAlertStack from '../../components/topAlertStack';
 
 class ClientTicketsPage extends Component {
     state = {
         clientAccount: '',
         clientWallet: '',
+        ethUsdRate: null,
         tickets: [],
         loading: true,
         errorMessage: '',
@@ -19,7 +22,9 @@ class ClientTicketsPage extends Component {
 
     async componentDidMount() {
         try {
+            const ethUsdRate = await fetchEthUsdRate();
             const session = getClientSession();
+            ensureClientTicketStorageVersion();
             const ticketKeys = Object.keys(window.localStorage).filter((key) => key.startsWith('clientTickets:'));
             const reconciledTickets = await Promise.all(
                 ticketKeys.map((key) => reconcileClientTicketsForEvent(key.split(':')[1], session))
@@ -59,6 +64,7 @@ class ClientTicketsPage extends Component {
             this.setState({
                 clientAccount: session.clientAccount,
                 clientWallet: session.clientWallet,
+                ethUsdRate,
                 tickets: enrichedTickets,
                 loading: false
             });
@@ -67,7 +73,9 @@ class ClientTicketsPage extends Component {
         }
     }
 
-    downloadBarcode = (ticketKey) => {
+    downloadBarcode = async (ticketKey) => {
+        let svgUrl = '';
+
         try {
             const svg = document.getElementById(`barcode-${ticketKey}`);
             if (!svg) {
@@ -76,17 +84,53 @@ class ClientTicketsPage extends Component {
 
             const serializer = new XMLSerializer();
             const source = serializer.serializeToString(svg);
-            const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
+            const svgBlob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+            svgUrl = URL.createObjectURL(svgBlob);
+            const image = new window.Image();
+            const width = Math.max(Math.ceil(svg.getBoundingClientRect().width), 640);
+            const height = Math.max(Math.ceil(svg.getBoundingClientRect().height), 220);
+
+            await new Promise((resolve, reject) => {
+                image.onload = resolve;
+                image.onerror = reject;
+                image.src = svgUrl;
+            });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+
+            const context = canvas.getContext('2d');
+            if (!context) {
+                throw new Error('Unable to prepare barcode image.');
+            }
+
+            context.fillStyle = '#ffffff';
+            context.fillRect(0, 0, width, height);
+            context.drawImage(image, 0, 0, width, height);
+
+            const jpgBlob = await new Promise((resolve) => {
+                canvas.toBlob(resolve, 'image/jpeg', 0.95);
+            });
+
+            if (!jpgBlob) {
+                throw new Error('Unable to generate JPG file.');
+            }
+
+            const url = URL.createObjectURL(jpgBlob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `${ticketKey}.svg`;
+            link.download = `${ticketKey}.jpg`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
         } catch (error) {
-            this.setState({ errorMessage: 'Unable to download barcode right now.' });
+            this.setState({ errorMessage: 'Unable to download barcode as JPG right now.' });
+        } finally {
+            if (svgUrl) {
+                URL.revokeObjectURL(svgUrl);
+            }
         }
     };
 
@@ -111,12 +155,15 @@ class ClientTicketsPage extends Component {
     getTicketStats() {
         const uniqueEvents = new Set(this.state.tickets.map((ticket) => ticket.eventAddress)).size;
         const pricedTickets = this.state.tickets.filter((ticket) => ticket.ticketPrice);
-        const totalValue = pricedTickets.reduce((sum, ticket) => sum + (parseInt(ticket.ticketPrice, 10) || 0), 0);
+        const totalValueWei = pricedTickets.reduce(
+            (sum, ticket) => (sum + BigInt(ticket.ticketPrice || '0')),
+            0n
+        );
 
         return {
             totalTickets: this.state.tickets.length,
             uniqueEvents,
-            totalValue
+            totalValueWei: totalValueWei.toString()
         };
     }
 
@@ -452,11 +499,21 @@ class ClientTicketsPage extends Component {
     }
 
     render() {
-        const { totalTickets, uniqueEvents, totalValue } = this.getTicketStats();
+        const { totalTickets, uniqueEvents, totalValueWei } = this.getTicketStats();
 
         return (
             <Layout>
                 <div className="tm-tickets-page">
+                    <TopAlertStack
+                        alerts={[
+                            this.state.errorMessage ? {
+                                id: 'client-tickets-error',
+                                type: 'error',
+                                content: this.state.errorMessage,
+                                onDismiss: () => this.setState({ errorMessage: '' })
+                            } : null
+                        ]}
+                    />
                     <section className="hero-panel">
                         <div className="hero-copy">
                             <span className="kicker">Client Ticket Wallet</span>
@@ -493,12 +550,11 @@ class ClientTicketsPage extends Component {
                         </article>
                         <article className="summary-card">
                             <span>Ticket Value</span>
-                            <strong>${totalValue}</strong>
-                            <p>Displayed as a simple dollar-style estimate from stored ticket prices.</p>
+                            <strong>{formatUsdFromWei(totalValueWei, this.state.ethUsdRate)}</strong>
+                            <p>{formatEthFromWei(totalValueWei)} across stored ticket purchases.</p>
                         </article>
                     </section>
 
-                    {this.state.errorMessage ? <Message error content={this.state.errorMessage} /> : null}
                     {!this.state.loading && this.state.tickets.length === 0 ? (
                         <section className="empty-state">
                             <span className="empty-kicker">No Passes Yet</span>

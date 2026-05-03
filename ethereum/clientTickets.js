@@ -3,14 +3,46 @@ import { isTicketOwnedByClient } from './clientSession';
 import { normalizeStoredTicket } from './ticketBarcode';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const CLIENT_TICKET_STORAGE_PREFIX = 'clientTickets:';
+const CLIENT_TICKET_STORAGE_VERSION_KEY = 'eventCoinClientTicketStorageVersion';
+const CLIENT_TICKET_STORAGE_VERSION = '2026-05-03-reset-1';
+
+const getStorageKey = (eventAddress) => `${CLIENT_TICKET_STORAGE_PREFIX}${eventAddress}`;
+
+const getTicketKeys = () => {
+    if (typeof window === 'undefined') {
+        return [];
+    }
+
+    return Object.keys(window.localStorage).filter((key) => key.startsWith(CLIENT_TICKET_STORAGE_PREFIX));
+};
+
+export const ensureClientTicketStorageVersion = () => {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const currentVersion = window.localStorage.getItem(CLIENT_TICKET_STORAGE_VERSION_KEY);
+    if (currentVersion === CLIENT_TICKET_STORAGE_VERSION) {
+        return;
+    }
+
+    getTicketKeys().forEach((key) => {
+        window.localStorage.removeItem(key);
+    });
+
+    window.localStorage.setItem(CLIENT_TICKET_STORAGE_VERSION_KEY, CLIENT_TICKET_STORAGE_VERSION);
+};
 
 const readStoredTickets = (eventAddress) => {
     if (typeof window === 'undefined') {
         return [];
     }
 
+    ensureClientTicketStorageVersion();
+
     try {
-        const rawValue = window.localStorage.getItem(`clientTickets:${eventAddress}`);
+        const rawValue = window.localStorage.getItem(getStorageKey(eventAddress));
         const parsedTickets = rawValue ? JSON.parse(rawValue) : [];
         return Array.isArray(parsedTickets) ? parsedTickets.map(normalizeStoredTicket) : [];
     } catch (error) {
@@ -23,7 +55,32 @@ const writeStoredTickets = (eventAddress, tickets) => {
         return;
     }
 
-    window.localStorage.setItem(`clientTickets:${eventAddress}`, JSON.stringify(tickets.map(normalizeStoredTicket)));
+    ensureClientTicketStorageVersion();
+    window.localStorage.setItem(
+        getStorageKey(eventAddress),
+        JSON.stringify(tickets.map(normalizeStoredTicket))
+    );
+};
+
+export const upsertStoredClientTickets = (eventAddress, tickets, session) => {
+    const allTickets = readStoredTickets(eventAddress);
+    const unrelatedTickets = session
+        ? allTickets.filter((ticket) => !isTicketOwnedByClient(ticket, session))
+        : allTickets;
+    const normalizedTickets = (tickets || []).map(normalizeStoredTicket);
+
+    writeStoredTickets(eventAddress, [...unrelatedTickets, ...normalizedTickets]);
+};
+
+export const removeStoredClientTicket = (eventAddress, ticketId, session) => {
+    const allTickets = readStoredTickets(eventAddress);
+    const nextTickets = allTickets.filter((ticket) => {
+        const sameTicket = String(ticket.ticketId) === String(ticketId);
+        const ownedByClient = session ? isTicketOwnedByClient(ticket, session) : true;
+        return !(sameTicket && ownedByClient);
+    });
+
+    writeStoredTickets(eventAddress, nextTickets);
 };
 
 export const reconcileClientTicketsForEvent = async (eventAddress, session) => {

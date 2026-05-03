@@ -4,28 +4,42 @@ import { contractAddress, getDeployedEventsInstance } from '../../ethereum/facto
 import AdminShell from '../../components/adminShell';
 import { Link } from '../../routes';
 import Event from '../../ethereum/event';
+import { getStoredAuditLogs, persistAuditLog } from '../../ethereum/auditLog';
+import { getStoredClientTransactions } from '../../ethereum/clientTransactions';
+import { ensureClientTicketStorageVersion } from '../../ethereum/clientTickets';
+import { createAdminExportPdfBlob } from '../../utils/adminExportPdf';
+import { fetchEthUsdRate, formatEthFromWei, formatUsdFromWei, multiplyWeiAmount } from '../../utils/ethPricing';
+import TopAlertStack from '../../components/topAlertStack';
+
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const EMPTY_STATS = {
+    totalEvents: 0,
+    ticketsSold: 0,
+    revenueWei: '0',
+    ticketsUsed: 0
+};
 
 class AdminDashboard extends Component {
     static async getInitialProps() {
         if (!contractAddress || !getDeployedEventsInstance) {
-            return { events: [], stats: { totalEvents: 0, ticketsSold: 0, revenueWei: 0, validations: 0 }, loadError: 'Set NEXT_PUBLIC_DIAMOND_ADDRESS in .env to load deployed events.' };
+            return { events: [], stats: EMPTY_STATS, loadError: 'Set NEXT_PUBLIC_DIAMOND_ADDRESS in .env to load deployed events.' };
         }
 
         try {
             const addresses = await getDeployedEventsInstance.methods.getDeployedEvents().call();
-            const events = await Promise.all(addresses.map(async (address) => {
+            const events = await Promise.all(addresses.map(async (address, deploymentIndex) => {
                 const event = Event(address);
                 const summary = await event.methods.getEventDetails().call();
-                const ticketPriceWei = parseInt(summary[1], 10) || 0;
+                const ticketPriceWei = summary[1] ? summary[1].toString() : '0';
                 const ticketSupply = parseInt(summary[2], 10) || 0;
                 const ticketsSold = parseInt(summary[3], 10) || 0;
 
-                let validations = 0;
+                let ticketsUsed = 0;
                 for (let ticketId = 1; ticketId <= ticketsSold; ticketId += 1) {
                     try {
                         const ticket = await event.methods.tickets(ticketId).call();
                         const isUsed = ticket.isUsed || ticket[1];
-                        if (isUsed) validations += 1;
+                        if (isUsed) ticketsUsed += 1;
                     } catch (e) {
                         // If ticket lookup fails for this id, skip.
                     }
@@ -33,40 +47,226 @@ class AdminDashboard extends Component {
 
                 return {
                     address,
+                    deploymentIndex,
                     name: summary[0],
                     ticketPriceWei,
                     ticketSupply,
                     ticketsSold,
                     description: summary[4] || '',
                     eventDate: summary[5] || '',
-                    validations
+                    ticketsUsed
                 };
             }));
 
             const stats = events.reduce((acc, item) => {
                 acc.totalEvents += 1;
                 acc.ticketsSold += item.ticketsSold;
-                acc.revenueWei += item.ticketPriceWei * item.ticketsSold;
-                acc.validations += item.validations;
+                acc.revenueWei = (BigInt(acc.revenueWei) + (BigInt(item.ticketPriceWei || '0') * BigInt(item.ticketsSold || 0))).toString();
+                acc.ticketsUsed += item.ticketsUsed;
                 return acc;
-            }, { totalEvents: 0, ticketsSold: 0, revenueWei: 0, validations: 0 });
+            }, { ...EMPTY_STATS });
 
             return { events, stats, loadError: '' };
         } catch (error) {
-            return { events: [], stats: { totalEvents: 0, ticketsSold: 0, revenueWei: 0, validations: 0 }, loadError: 'Unable to load events from the blockchain right now.' };
+            return { events: [], stats: EMPTY_STATS, loadError: 'Unable to load events from the blockchain right now.' };
         }
     }
 
     state = {
         adminAccount: '',
         searchTerm: '',
-        sortOrder: 'latest'
+        sortOrder: 'latest',
+        ethUsdRate: null,
+        exportLoading: false,
+        exportErrorMessage: '',
+        exportSuccessMessage: ''
     };
 
-    componentDidMount() {
+    async componentDidMount() {
         const adminAccount = window.localStorage.getItem('adminAccount') || '';
-        this.setState({ adminAccount });
+        const ethUsdRate = await fetchEthUsdRate();
+        this.setState({ adminAccount, ethUsdRate });
     }
+
+    getStoredClients() {
+        if (typeof window === 'undefined') {
+            return [];
+        }
+
+        try {
+            const rawValue = window.localStorage.getItem('eventCoinClients');
+            const parsedClients = rawValue ? JSON.parse(rawValue) : [];
+            return Array.isArray(parsedClients) ? parsedClients : [];
+        } catch (error) {
+            return [];
+        }
+    }
+
+    getStoredOwnerNames() {
+        if (typeof window === 'undefined') {
+            return {};
+        }
+
+        ensureClientTicketStorageVersion();
+        return Object.keys(window.localStorage).reduce((ownerNames, key) => {
+            if (!key.startsWith('clientTickets:')) {
+                return ownerNames;
+            }
+
+            const eventAddress = key.split(':')[1];
+
+            try {
+                const tickets = JSON.parse(window.localStorage.getItem(key) || '[]');
+                tickets.forEach((ticket) => {
+                    if (ticket.ticketId === undefined || ticket.ticketId === null) {
+                        return;
+                    }
+
+                    ownerNames[`${eventAddress}-${ticket.ticketId}`] = ticket.purchaserName || ticket.purchaserId || '';
+                });
+            } catch (error) {
+                // Ignore malformed browser ticket records.
+            }
+
+            return ownerNames;
+        }, {});
+    }
+
+    async buildPurchasedTicketSnapshot() {
+        const ownerNames = this.getStoredOwnerNames();
+        const groupedRows = await Promise.all(this.props.events.map(async (eventSummary) => {
+            const event = Event(eventSummary.address);
+            const ticketSupply = parseInt(eventSummary.ticketSupply, 10) || 0;
+
+            const tickets = await Promise.all(
+                Array.from({ length: ticketSupply }, (_, ticketId) => (
+                    event.methods.tickets(ticketId).call()
+                        .then((ticket) => {
+                            const ownerAddress = ticket.owner || ticket[0] || '';
+                            const isUsed = Boolean(ticket.isUsed || ticket[1]);
+
+                            if (!ownerAddress || ownerAddress.toLowerCase() === ZERO_ADDRESS) {
+                                return null;
+                            }
+
+                            return {
+                                eventAddress: eventSummary.address,
+                                eventName: eventSummary.name || 'Unnamed Event',
+                                ticketId,
+                                ownerAddress,
+                                ownerName: ownerNames[`${eventSummary.address}-${ticketId}`] || '',
+                                status: isUsed ? 'Used' : 'Unused'
+                            };
+                        })
+                        .catch(() => null)
+                ))
+            );
+
+            return tickets.filter(Boolean);
+        }));
+
+        return groupedRows
+            .flat()
+            .sort((left, right) => {
+                if (left.eventName !== right.eventName) {
+                    return left.eventName.localeCompare(right.eventName);
+                }
+
+                return left.ticketId - right.ticketId;
+            });
+    }
+
+    downloadExportFile(filename, blob) {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    }
+
+    logAdminAudit = ({ action, status, details = {} }) => {
+        const adminAccount = this.state.adminAccount || (typeof window !== 'undefined' ? window.localStorage.getItem('adminAccount') : '') || 'Admin';
+
+        persistAuditLog({
+            actorName: adminAccount,
+            actorRole: 'admin',
+            actorId: adminAccount,
+            action,
+            status,
+            entityType: 'export',
+            entityId: 'admin-dashboard',
+            route: '/admin/dashboard',
+            details
+        });
+    };
+
+    handleExportData = async () => {
+        this.setState({
+            exportLoading: true,
+            exportErrorMessage: '',
+            exportSuccessMessage: ''
+        });
+
+        try {
+            if (typeof window === 'undefined') {
+                throw new Error('Export is only available in the browser.');
+            }
+
+            const purchasedTickets = await this.buildPurchasedTicketSnapshot();
+            const clients = this.getStoredClients();
+            const clientTransactions = getStoredClientTransactions();
+            const auditLogs = getStoredAuditLogs();
+            const exportedAt = new Date().toISOString();
+            const fileTimestamp = exportedAt.replace(/[:.]/g, '-');
+
+            const payload = {
+                exportedAt,
+                adminAccount: this.state.adminAccount || window.localStorage.getItem('adminAccount') || '',
+                summary: {
+                    ...this.props.stats,
+                    ethUsdRate: this.state.ethUsdRate
+                },
+                events: this.props.events,
+                purchasedTickets,
+                clients,
+                clientTransactions,
+                auditLogs
+            };
+
+            const pdfBlob = createAdminExportPdfBlob(payload);
+            this.downloadExportFile(`eventcoin-admin-export-${fileTimestamp}.pdf`, pdfBlob);
+            this.logAdminAudit({
+                action: 'Admin data export',
+                status: 'success',
+                details: {
+                    events: this.props.events.length,
+                    purchasedTickets: purchasedTickets.length,
+                    clients: clients.length,
+                    transactions: clientTransactions.length,
+                    auditLogs: auditLogs.length
+                }
+            });
+            this.setState({
+                exportLoading: false,
+                exportSuccessMessage: 'Admin data export downloaded successfully.'
+            });
+        } catch (error) {
+            const message = error?.message || 'Unable to export admin data right now.';
+            this.logAdminAudit({
+                action: 'Admin data export',
+                status: 'failed',
+                details: { reason: message }
+            });
+            this.setState({
+                exportLoading: false,
+                exportErrorMessage: message
+            });
+        }
+    };
 
     getFilteredEvents() {
         const { events } = this.props;
@@ -81,7 +281,14 @@ class AdminDashboard extends Component {
             );
         }
 
-        filtered.sort((a, b) => (sortOrder === 'latest' ? b.address.localeCompare(a.address) : a.address.localeCompare(b.address)));
+        filtered.sort((a, b) => {
+            const leftIndex = Number.isFinite(a.deploymentIndex) ? a.deploymentIndex : 0;
+            const rightIndex = Number.isFinite(b.deploymentIndex) ? b.deploymentIndex : 0;
+
+            return sortOrder === 'latest'
+                ? rightIndex - leftIndex
+                : leftIndex - rightIndex;
+        });
         return filtered;
     }
 
@@ -93,9 +300,8 @@ class AdminDashboard extends Component {
         return Math.min(Math.round((event.ticketsSold / event.ticketSupply) * 100), 100);
     }
 
-    formatCurrency(amount) {
-        const numericAmount = Number(amount) || 0;
-        return `$${numericAmount.toLocaleString('en-US')}`;
+    getEventRevenueWei(event) {
+        return multiplyWeiAmount(event.ticketPriceWei, event.ticketsSold);
     }
 
     formatEventSchedule(event) {
@@ -152,14 +358,14 @@ class AdminDashboard extends Component {
                             className="active-event-grid"
                             style={{
                                 display: 'grid',
-                                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
                                 gap: '14px',
                                 alignItems: 'stretch'
                             }}
                         >
                             {activeEvents.map((event, index) => {
                                 const sellThrough = this.getSellThroughPercent(event);
-                                const revenueAmount = event.ticketPriceWei * event.ticketsSold;
+                                const revenueWei = this.getEventRevenueWei(event);
                                 const schedule = this.formatEventSchedule(event);
                                 const badgeLabel = sellThrough < 25 ? 'PRESALE' : 'LIVE';
 
@@ -291,7 +497,7 @@ class AdminDashboard extends Component {
                                             >
                                                 <strong style={{ color: '#0f172a', fontSize: '0.92rem' }}>EventCoin</strong>
                                                 <span style={{ color: '#334155', fontSize: '0.76rem', lineHeight: 1.4 }}>
-                                                    {event.ticketsSold}/{event.ticketSupply} sold • {this.formatCurrency(revenueAmount)}
+                                                    {event.ticketsSold}/{event.ticketSupply} sold • {formatUsdFromWei(revenueWei, this.state.ethUsdRate)} • {formatEthFromWei(revenueWei)} • {event.ticketsUsed} used
                                                 </span>
                                             </div>
                                             <Link route={`/events/${event.address}/validate`} legacyBehavior>
@@ -332,29 +538,151 @@ class AdminDashboard extends Component {
                             }}
                         >
                             {soldOutEvents.map((event) => {
-                                const revenueAmount = event.ticketPriceWei * event.ticketsSold;
+                                const revenueWei = this.getEventRevenueWei(event);
                                 const schedule = this.formatEventSchedule(event);
 
                                 return (
-                                    <article key={event.address} className="poster-event-card sold-out-card">
-                                        <div className="poster-header">
-                                            <span className="poster-badge sold-out-badge">SOLD OUT</span>
+                                    <article
+                                        key={event.address}
+                                        className="poster-event-card"
+                                        style={{
+                                            background: '#fff',
+                                            borderRadius: '16px',
+                                            border: '1px solid #dbe4f0',
+                                            boxShadow: '0 12px 28px rgba(15, 23, 42, 0.08)',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            minWidth: 0,
+                                            overflow: 'hidden'
+                                        }}
+                                    >
+                                        <div className="poster-header" style={{ padding: '16px 18px 0' }}>
+                                            <span
+                                                className="poster-badge sold-out-badge"
+                                                style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
+                                                    color: '#fff',
+                                                    minWidth: '88px',
+                                                    borderRadius: '12px',
+                                                    padding: '8px 12px',
+                                                    fontSize: '0.78rem',
+                                                    fontWeight: 800,
+                                                    letterSpacing: '0.04em'
+                                                }}
+                                            >
+                                                SOLD OUT
+                                            </span>
                                         </div>
-                                        <div className="poster-body">
-                                            <p className="poster-schedule">{schedule}</p>
+                                        <div
+                                            className="poster-body"
+                                            style={{
+                                                padding: '14px 18px 10px',
+                                                minHeight: '156px',
+                                                display: 'flex',
+                                                flexDirection: 'column'
+                                            }}
+                                        >
+                                            <p
+                                                className="poster-schedule"
+                                                style={{
+                                                    margin: '0 0 10px',
+                                                    color: '#54657b',
+                                                    fontSize: '0.82rem',
+                                                    fontWeight: 700,
+                                                    letterSpacing: '0.08em',
+                                                    textTransform: 'uppercase'
+                                                }}
+                                            >
+                                                {schedule}
+                                            </p>
                                             <Link route={`/events/${event.address}`} legacyBehavior>
-                                                <a className="poster-title">{event.name || 'Unnamed Event'}</a>
+                                                <a
+                                                    className="poster-title"
+                                                    style={{
+                                                        display: 'inline-block',
+                                                        marginBottom: '10px',
+                                                        color: '#003ba8',
+                                                        fontSize: '1rem',
+                                                        lineHeight: 1.4,
+                                                        fontWeight: 800,
+                                                        textDecoration: 'underline',
+                                                        textDecorationThickness: '2px',
+                                                        textUnderlineOffset: '3px',
+                                                        minHeight: '84px'
+                                                    }}
+                                                >
+                                                    {event.name || 'Unnamed Event'}
+                                                </a>
                                             </Link>
-                                            <p className="poster-location">{this.getEventLocation(event)}</p>
+                                            <p
+                                                className="poster-location"
+                                                style={{
+                                                    margin: 0,
+                                                    color: '#1e293b',
+                                                    fontSize: '0.88rem',
+                                                    lineHeight: 1.45,
+                                                    minHeight: '48px'
+                                                }}
+                                            >
+                                                {this.getEventLocation(event)}
+                                            </p>
                                         </div>
-                                        <div className="poster-footer">
-                                            <div className="sponsor-mark">EC</div>
-                                            <div className="poster-footer-copy">
-                                                <strong>EventCoin</strong>
-                                                <span>{event.ticketsSold}/{event.ticketSupply} sold • {this.formatCurrency(revenueAmount)} • {event.validations} validated</span>
+                                        <div
+                                            className="poster-footer"
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '10px',
+                                                padding: '14px 18px 16px',
+                                                borderTop: '1px solid #dbe4f0',
+                                                marginTop: 'auto'
+                                            }}
+                                        >
+                                            <div
+                                                className="sponsor-mark"
+                                                style={{
+                                                    width: '42px',
+                                                    height: '42px',
+                                                    borderRadius: '999px',
+                                                    background: 'linear-gradient(135deg, #2058e8 0%, #426dff 100%)',
+                                                    color: '#fff',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontWeight: 800,
+                                                    flexShrink: 0
+                                                }}
+                                            >
+                                                EC
                                             </div>
-                                            <Link route={`/events/${event.address}`} legacyBehavior>
-                                                <a className="poster-footer-link">Open Dashboard</a>
+                                            <div
+                                                className="poster-footer-copy"
+                                                style={{
+                                                    minWidth: 0,
+                                                    flex: 1,
+                                                    display: 'flex',
+                                                    flexDirection: 'column'
+                                                }}
+                                            >
+                                                <strong style={{ color: '#0f172a', fontSize: '0.92rem' }}>EventCoin</strong>
+                                                <span>{event.ticketsSold}/{event.ticketSupply} sold • {formatUsdFromWei(revenueWei, this.state.ethUsdRate)} • {formatEthFromWei(revenueWei)} • {event.ticketsUsed} used</span>
+                                            </div>
+                                            <Link route={`/events/${event.address}/validate`} legacyBehavior>
+                                                <a
+                                                    className="poster-footer-link"
+                                                    style={{
+                                                        color: '#003ba8',
+                                                        fontSize: '0.74rem',
+                                                        fontWeight: 800,
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '0.05em'
+                                                    }}
+                                                >
+                                                    Validate
+                                                </a>
                                             </Link>
                                         </div>
                                     </article>
@@ -376,8 +704,8 @@ class AdminDashboard extends Component {
         const statCards = [
             { title: 'Total Events', value: this.props.stats.totalEvents, accent: '#00B9F2', note: 'Contracts in circulation', icon: 'ticket' },
             { title: 'Tickets Sold', value: this.props.stats.ticketsSold, accent: '#00A651', note: 'Completed fan checkouts', icon: 'shopping cart' },
-            { title: 'Revenue ($)', value: this.formatCurrency(this.props.stats.revenueWei), accent: '#026CDF', note: 'Gross on-chain sales', icon: 'line graph' },
-            { title: 'Validations', value: this.props.stats.validations, accent: '#7C3AED', note: 'Tickets scanned at gate', icon: 'check circle' }
+            { title: 'Revenue', value: formatUsdFromWei(this.props.stats.revenueWei, this.state.ethUsdRate), accent: '#026CDF', note: `${formatEthFromWei(this.props.stats.revenueWei)} gross on-chain sales`, icon: 'line graph' },
+            { title: 'Tickets Used', value: this.props.stats.ticketsUsed, accent: '#7C3AED', note: 'Tickets scanned at gate', icon: 'check circle' }
         ];
 
         return (
@@ -391,7 +719,15 @@ class AdminDashboard extends Component {
                         <Link route="/events/new" legacyBehavior>
                             <a><Button primary className="tm-top-action">Create Event</Button></a>
                         </Link>
-                        <Button basic color="blue" className="tm-top-action secondary">Export Data</Button>
+                        <Button
+                            basic
+                            color="blue"
+                            className="tm-top-action secondary"
+                            loading={this.state.exportLoading}
+                            onClick={this.handleExportData}
+                        >
+                            Export Data
+                        </Button>
                     </>
                 )}
                 heroTitle="Admin Ops Desk"
@@ -405,6 +741,22 @@ class AdminDashboard extends Component {
                     </>
                 )}
             >
+                <TopAlertStack
+                    alerts={[
+                        this.state.exportErrorMessage ? {
+                            id: 'admin-export-error',
+                            type: 'error',
+                            content: this.state.exportErrorMessage,
+                            onDismiss: () => this.setState({ exportErrorMessage: '' })
+                        } : null,
+                        this.state.exportSuccessMessage ? {
+                            id: 'admin-export-success',
+                            type: 'success',
+                            content: this.state.exportSuccessMessage,
+                            onDismiss: () => this.setState({ exportSuccessMessage: '' })
+                        } : null
+                    ]}
+                />
                 <section className="stats-grid">
                     {statCards.map((card) => (
                         <article key={card.title} className="stat-card" style={{ '--card-accent': card.accent }}>
@@ -504,6 +856,8 @@ class AdminDashboard extends Component {
                         font-family: 'Barlow Condensed', sans-serif;
                         font-size: 2rem;
                         letter-spacing: 0.03em;
+                        line-height: 1.1;
+                        word-break: break-word;
                     }
                     .stat-note {
                         margin: 0;

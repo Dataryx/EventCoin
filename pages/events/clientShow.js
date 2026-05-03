@@ -1,14 +1,14 @@
 import React, { Component } from 'react';
-import { Button, Message, Input, Icon } from 'semantic-ui-react';
+import { Button, Input, Icon } from 'semantic-ui-react';
 import Layout from '../../components/layout';
 import Event from '../../ethereum/event';
-import web3 from '../../ethereum/web3';
-import { getClientSession, isTicketOwnedByClient } from '../../ethereum/clientSession';
+import { Router } from '../../routes';
+import { getClientSession } from '../../ethereum/clientSession';
 import { reconcileClientTicketsForEvent } from '../../ethereum/clientTickets';
-import { persistClientTransaction } from '../../ethereum/clientTransactions';
 import TicketBarcode from '../../components/ticketBarcode';
-import { createTicketBarcodeValue } from '../../ethereum/ticketBarcode';
 import { persistAuditLog } from '../../ethereum/auditLog';
+import TopAlertStack from '../../components/topAlertStack';
+import { fetchEthUsdRate, formatEthFromWei, formatUsdFromWei } from '../../utils/ethPricing';
 
 class ClientEventShow extends Component {
     static async getInitialProps(props) {
@@ -27,20 +27,20 @@ class ClientEventShow extends Component {
     }
 
     state = {
-        loading: false,
         errorMessage: '',
         successMessage: '',
-        statusMessage: '',
-        statusHeader: '',
         clientAccount: '',
         clientWallet: '',
+        ethUsdRate: null,
         purchasedTickets: [],
         copiedTicketId: '',
         quantity: 1,
         cartQuantity: 0
     };
 
-    componentDidMount() {
+    async componentDidMount() {
+        const ethUsdRate = await fetchEthUsdRate();
+        this.setState({ ethUsdRate });
         this.restoreClientState();
     }
 
@@ -53,35 +53,6 @@ class ClientEventShow extends Component {
         const purchasedTickets = await reconcileClientTicketsForEvent(this.props.contractAddress, session);
 
         this.setState({ clientAccount: session.clientAccount, clientWallet: session.clientWallet, purchasedTickets });
-    };
-
-    persistTickets = (tickets) => {
-        const session = getClientSession();
-        const storedTickets = window.localStorage.getItem(this.storageKey());
-        const allTickets = storedTickets ? JSON.parse(storedTickets) : [];
-        const preservedTickets = allTickets.filter((ticket) => !isTicketOwnedByClient(ticket, session));
-        const nextTickets = [...preservedTickets, ...tickets];
-
-        window.localStorage.setItem(this.storageKey(), JSON.stringify(nextTickets));
-        this.setState({ purchasedTickets: tickets });
-    };
-
-    formatCheckoutError = (error) => {
-        const rawMessage = error?.message || 'Unable to complete checkout right now.';
-
-        if (rawMessage.includes('User denied')) {
-            return 'The payment was cancelled in MetaMask before it was confirmed.';
-        }
-
-        if (rawMessage.toLowerCase().includes('insufficient funds')) {
-            return 'The connected wallet does not have enough ETH to cover this purchase and gas fees.';
-        }
-
-        if (rawMessage.includes('Internal JSON-RPC error')) {
-            return 'Wallet or local blockchain returned a generic RPC error. Verify MetaMask is connected to the expected local network and try again.';
-        }
-
-        return rawMessage;
     };
 
     logClientAudit = ({ action, status, entityType = 'event', entityId = '', details = {} }) => {
@@ -102,127 +73,6 @@ class ClientEventShow extends Component {
         });
     };
 
-    handleCheckout = async () => {
-        const cartQuantity = parseInt(this.state.cartQuantity, 10) || 0;
-
-        this.setState({
-            loading: true,
-            errorMessage: '',
-            successMessage: '',
-            statusHeader: 'Payment status',
-            statusMessage: 'Preparing checkout and checking your wallet connection.'
-        });
-        const event = Event(this.props.contractAddress);
-
-        try {
-            if (!window.ethereum) {
-                throw new Error('Install MetaMask to complete checkout.');
-            }
-            const session = getClientSession();
-            if (!session.clientIdentity) {
-                throw new Error('Login as a client before purchasing tickets.');
-            }
-            await window.ethereum.request({ method: 'eth_requestAccounts' });
-            const accounts = await web3.eth.getAccounts();
-            if (!accounts.length) {
-                throw new Error('No wallet account found. Connect MetaMask first.');
-            }
-
-            const buyerAddress = accounts[0];
-            const profile = session.clientProfile || {};
-            const purchaserId = session.clientAccount || '';
-            const purchaserClientId = session.clientIdentity;
-            if (!cartQuantity) {
-                throw new Error('Add at least one ticket to cart before checkout.');
-            }
-            const available = parseInt(this.props.ticketSupply, 10) - parseInt(this.props.ticketsSold, 10);
-            if (cartQuantity > available) {
-                throw new Error('Requested quantity exceeds available tickets.');
-            }
-
-            this.setState({
-                statusMessage: `Wallet connected. Confirm ${cartQuantity} ticket payment${cartQuantity > 1 ? 's' : ''} in MetaMask to finish checkout.`
-            });
-
-            const newTickets = [];
-            const purchaseTimestamp = new Date().toISOString();
-            for (let i = 0; i < cartQuantity; i += 1) {
-                this.setState({
-                    statusMessage: `Processing payment ${i + 1} of ${cartQuantity}. MetaMask may prompt for confirmation.`
-                });
-                const result = await event.methods.buyTicket().send({
-                    from: buyerAddress,
-                    value: this.props.ticketPrice
-                });
-                const ticketId = result.events.TicketPurchased.returnValues.ticketId;
-                const barcodeValue = createTicketBarcodeValue(ticketId);
-                newTickets.push({
-                    ticketId: ticketId.toString(),
-                    barcodeValue,
-                    buyerAddress,
-                    eventAddress: this.props.contractAddress,
-                    issuedAt: purchaseTimestamp,
-                    purchaserClientId,
-                    purchaserId,
-                    purchaserName: profile.name || purchaserId
-                });
-                persistClientTransaction({
-                    eventAddress: this.props.contractAddress,
-                    eventName: this.props.name || 'Unnamed Event',
-                    qty: 1,
-                    ethPaidWei: this.props.ticketPrice.toString(),
-                    txHash: result.transactionHash || '',
-                    purchasedAt: purchaseTimestamp,
-                    purchaserClientId,
-                    purchaserId
-                });
-                this.setState({
-                    statusMessage: `Payment ${i + 1} of ${cartQuantity} confirmed. Ticket #${ticketId} has been issued.`
-                });
-            }
-
-            const nextTickets = [...newTickets, ...this.state.purchasedTickets];
-            this.persistTickets(nextTickets);
-            window.localStorage.setItem('clientWallet', buyerAddress);
-            this.logClientAudit({
-                action: 'Ticket purchase',
-                status: 'success',
-                details: {
-                    eventName: this.props.name,
-                    quantity: cartQuantity,
-                    ticketIds: newTickets.map((ticket) => ticket.ticketId).join(', '),
-                    walletAddress: buyerAddress
-                }
-            });
-
-            this.setState({
-                successMessage: `Checkout successful! Purchased ${cartQuantity} ticket(s).`,
-                statusHeader: 'Purchase complete',
-                statusMessage: `Your barcode ticket${cartQuantity > 1 ? 's are' : ' is'} now saved in this browser wallet and ready for entry.`,
-                clientWallet: buyerAddress,
-                cartQuantity: 0
-            });
-        } catch (err) {
-            const friendlyError = this.formatCheckoutError(err);
-            this.logClientAudit({
-                action: 'Ticket purchase',
-                status: 'failed',
-                details: {
-                    eventName: this.props.name,
-                    quantity: cartQuantity,
-                    reason: friendlyError
-                }
-            });
-            this.setState({
-                errorMessage: friendlyError,
-                statusMessage: '',
-                statusHeader: ''
-            });
-        }
-
-        this.setState({ loading: false });
-    };
-
     handleAddToCart = () => {
         const quantity = parseInt(this.state.quantity, 10);
         const available = parseInt(this.props.ticketSupply, 10) - parseInt(this.props.ticketsSold, 10);
@@ -241,6 +91,29 @@ class ClientEventShow extends Component {
             errorMessage: '',
             successMessage: `${quantity} ticket(s) added to cart.`
         });
+    };
+
+    handleGoToCheckout = () => {
+        const cartQuantity = parseInt(this.state.cartQuantity, 10) || 0;
+
+        if (!cartQuantity) {
+            this.setState({
+                errorMessage: 'Add at least one ticket to cart before going to checkout.',
+                successMessage: ''
+            });
+            return;
+        }
+
+        this.logClientAudit({
+            action: 'Checkout started',
+            status: 'success',
+            details: {
+                eventName: this.props.name,
+                quantity: cartQuantity
+            }
+        });
+
+        Router.pushRoute(`/events/${this.props.contractAddress}/checkout?quantity=${cartQuantity}`);
     };
 
     renderTicketBarcodeCards() {
@@ -298,10 +171,30 @@ class ClientEventShow extends Component {
         const sellThrough = parseInt(this.props.ticketSupply, 10)
             ? Math.min(Math.round((parseInt(this.props.ticketsSold, 10) / parseInt(this.props.ticketSupply, 10)) * 100), 100)
             : 0;
+        const ticketPriceEth = formatEthFromWei(this.props.ticketPrice);
+        const ticketPriceUsd = formatUsdFromWei(this.props.ticketPrice, this.state.ethUsdRate);
 
         return (
             <Layout>
                 <div className="tm-client-page">
+                    <TopAlertStack
+                        alerts={[
+                            this.state.errorMessage ? {
+                                id: 'client-event-error',
+                                type: 'error',
+                                header: 'Checkout blocked',
+                                content: this.state.errorMessage,
+                                onDismiss: () => this.setState({ errorMessage: '' })
+                            } : null,
+                            this.state.successMessage ? {
+                                id: 'client-event-success',
+                                type: 'success',
+                                header: 'Cart update',
+                                content: this.state.successMessage,
+                                onDismiss: () => this.setState({ successMessage: '' })
+                            } : null
+                        ]}
+                    />
                     <section className="hero-panel">
                         <div className="hero-copy">
                             <span className="kicker">EventCoin Commerce Hub</span>
@@ -315,16 +208,12 @@ class ClientEventShow extends Component {
                         </div>
                         <div className="hero-side">
                             <p className="side-label">Client Session</p>
-                            <h2>${this.props.ticketPrice}</h2>
-                            <p className="side-copy">Price per ticket</p>
+                            <h2>{ticketPriceEth}</h2>
+                            <p className="side-copy">{ticketPriceUsd} per ticket</p>
                             <p className="wallet-copy">{this.state.clientAccount || 'No active client profile'}</p>
                             <p className="wallet-copy">{this.state.clientWallet || 'Wallet not connected yet'}</p>
                         </div>
                     </section>
-
-                    {this.state.errorMessage ? <Message error header="Payment failed" content={this.state.errorMessage} /> : null}
-                    {this.state.statusMessage ? <Message info header={this.state.statusHeader || 'Status'} content={this.state.statusMessage} /> : null}
-                    {this.state.successMessage ? <Message success header="Purchase update" content={this.state.successMessage} /> : null}
 
                     <section className="checkout-grid">
                         <article className="info-card">
@@ -357,8 +246,8 @@ class ClientEventShow extends Component {
                                 Add to Cart
                             </Button>
                             <p className="cart-row">Cart quantity: <strong>{this.state.cartQuantity}</strong></p>
-                            <Button loading={this.state.loading} onClick={this.handleCheckout} primary fluid className="tm-btn checkout-btn">
-                                Checkout
+                            <Button onClick={this.handleGoToCheckout} primary fluid className="tm-btn checkout-btn">
+                                Go to Checkout
                             </Button>
                         </article>
                     </section>

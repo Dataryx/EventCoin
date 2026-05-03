@@ -1,10 +1,12 @@
 import React, { Component } from 'react' ;
-import {Form,Button,Input,Message} from 'semantic-ui-react';
+import {Form,Button,Input} from 'semantic-ui-react';
 import Layout from '../../components/layout';
 import { contractAddress, createEventInstance } from '../../ethereum/factory';
 import web3 from '../../ethereum/web3';
 import { Router } from '../../routes';
 import { persistAuditLog } from '../../ethereum/auditLog';
+import { convertEthToWei, fetchEthUsdRate, formatUsdValue } from '../../utils/ethPricing';
+import TopAlertStack from '../../components/topAlertStack';
 
 class EventNew extends Component {
     state = {
@@ -13,11 +15,17 @@ class EventNew extends Component {
         eventDate: '',
         ticketPrice: '',
         ticketSupply: '',
+        ethUsdRate: null,
         errorMessage: '',
         successMessage: '',
         statusMessage: '',
         loading: false
     };
+
+    async componentDidMount() {
+        const ethUsdRate = await fetchEthUsdRate();
+        this.setState({ ethUsdRate });
+    }
 
     formatCreateEventError = (error) => {
         const message = error?.message || 'Unable to create the event right now.';
@@ -71,7 +79,7 @@ class EventNew extends Component {
                 throw new Error('Event name is required.');
             }
             if (!Number.isFinite(ticketPrice) || ticketPrice <= 0) {
-                throw new Error('Ticket price must be a positive dollar amount.');
+                throw new Error('Ticket price must be a positive ETH amount.');
             }
             if (!Number.isInteger(ticketSupply) || ticketSupply <= 0) {
                 throw new Error('Ticket supply must be a positive integer.');
@@ -80,6 +88,8 @@ class EventNew extends Component {
             if (ticketSupply > 1000) {
                 throw new Error('Ticket supply is too large for one transaction. Use 1000 or less.');
             }
+
+            const ticketPriceWei = convertEthToWei(this.state.ticketPrice);
 
             const accounts = await web3.eth.getAccounts();
             if (!accounts.length) {
@@ -122,7 +132,7 @@ class EventNew extends Component {
                     this.state.eventName,
                     this.state.eventDescription,
                     this.state.eventDate,
-                    ticketPrice.toString(),
+                    ticketPriceWei,
                     ticketSupply.toString()
                 );
                 estimatedGas = await modernMethod.estimateGas({ from: accounts[0] });
@@ -130,7 +140,7 @@ class EventNew extends Component {
             } catch (modernEstimateError) {
                 try {
                     const legacyMethod = legacyCreateEvent.methods
-                        .createEvent(this.state.eventName, ticketPrice.toString(), ticketSupply.toString());
+                        .createEvent(this.state.eventName, ticketPriceWei, ticketSupply.toString());
                     estimatedGas = await legacyMethod.estimateGas({ from: accounts[0] });
                     methodToSend = legacyMethod;
                 } catch (legacyEstimateError) {
@@ -171,7 +181,8 @@ class EventNew extends Component {
                 details: {
                     eventName: this.state.eventName,
                     eventDate: this.state.eventDate,
-                    ticketPrice,
+                    ticketPriceEth: this.state.ticketPrice,
+                    ticketPriceWei,
                     ticketSupply,
                     managerWallet: accounts[0],
                     eventAddress: createdEventAddress || ''
@@ -192,7 +203,7 @@ class EventNew extends Component {
                 details: {
                     eventName: this.state.eventName,
                     eventDate: this.state.eventDate,
-                    ticketPrice: this.state.ticketPrice,
+                    ticketPriceEth: this.state.ticketPrice,
                     ticketSupply: this.state.ticketSupply,
                     reason: friendlyError
                 }
@@ -205,11 +216,34 @@ class EventNew extends Component {
     render() {
         return (
             <Layout>
+                <TopAlertStack
+                    alerts={[
+                        this.state.statusMessage ? {
+                            id: 'event-create-status',
+                            type: 'info',
+                            header: 'Creation status',
+                            content: this.state.statusMessage,
+                            autoDismissMs: 0
+                        } : null,
+                        this.state.successMessage ? {
+                            id: 'event-create-success',
+                            type: 'success',
+                            header: 'Event created',
+                            content: this.state.successMessage,
+                            onDismiss: () => this.setState({ successMessage: '' })
+                        } : null,
+                        this.state.errorMessage ? {
+                            id: 'event-create-error',
+                            type: 'error',
+                            header: 'Event creation failed',
+                            content: this.state.errorMessage,
+                            onDismiss: () => this.setState({ errorMessage: '' })
+                        } : null
+                    ]}
+                />
                 <h3>Create an Event</h3>
 
                 <Form onSubmit={this.onSubmit} error={!!this.state.errorMessage}>
-                    {this.state.statusMessage ? <Message info header="Creation status" content={this.state.statusMessage} /> : null}
-                    {this.state.successMessage ? <Message success header="Event created" content={this.state.successMessage} /> : null}
                     <Form.Field>
                         <label>Event Name</label>
                         <Input
@@ -235,11 +269,14 @@ class EventNew extends Component {
                     <Form.Field>
                         <label>Ticket Price</label>
                         <Input 
-                            label="$" 
+                            label="ETH" 
                             labelPosition="right"
                             value={this.state.ticketPrice}
                             onChange={event => this.setState({ ticketPrice: event.target.value})}
                         />
+                        <div style={{ marginTop: '6px', color: '#64748b', fontSize: '0.86rem' }}>
+                            Approx. {this.state.ticketPrice && this.state.ethUsdRate ? formatUsdValue(Number(this.state.ticketPrice) * this.state.ethUsdRate) : 'USD preview unavailable'}
+                        </div>
                     </Form.Field>
                     <Form.Field>
                         <label>Ticket Supply</label>
@@ -248,7 +285,6 @@ class EventNew extends Component {
                             onChange={event => this.setState({ ticketSupply: event.target.value})}
                         />
                     </Form.Field>
-                    <Message error header="Event creation failed" content={this.state.errorMessage} />
                     <Button loading={this.state.loading} primary>Create!</Button>
                 </Form>
             </Layout>

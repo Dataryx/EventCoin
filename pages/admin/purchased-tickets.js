@@ -3,6 +3,7 @@ import { Input, Message } from 'semantic-ui-react';
 import { contractAddress, getDeployedEventsInstance } from '../../ethereum/factory';
 import Event from '../../ethereum/event';
 import AdminShell from '../../components/adminShell';
+import { ensureClientTicketStorageVersion } from '../../ethereum/clientTickets';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -81,6 +82,7 @@ class AdminPurchasedTicketsPage extends Component {
         const adminAccount = window.localStorage.getItem('adminAccount') || '';
         const ownerNames = {};
 
+        ensureClientTicketStorageVersion();
         Object.keys(window.localStorage).forEach((key) => {
             if (!key.startsWith('clientTickets:')) {
                 return;

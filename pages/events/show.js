@@ -1,8 +1,10 @@
 import React, { Component } from 'react';
-import { Message, Icon } from 'semantic-ui-react';
+import { Icon } from 'semantic-ui-react';
 import Layout from '../../components/layout';
 import Event from '../../ethereum/event';
 import { Link } from '../../routes';
+import TopAlertStack from '../../components/topAlertStack';
+import { fetchEthUsdRate, formatEthFromWei, formatUsdFromWei, multiplyWeiAmount } from '../../utils/ethPricing';
 
 class EventShow extends Component {
     static async getInitialProps(props) {
@@ -49,8 +51,14 @@ class EventShow extends Component {
         super(props);
         this.state = {
             errorMessage: '',
-            successMessage: this.props.successMessage
+            successMessage: this.props.successMessage,
+            ethUsdRate: null
         };
+    }
+
+    async componentDidMount() {
+        const ethUsdRate = await fetchEthUsdRate();
+        this.setState({ ethUsdRate });
     }
 
     componentDidUpdate(prevProps) {
@@ -153,10 +161,33 @@ class EventShow extends Component {
             : 0;
         const usedTickets = soldTickets.filter((ticket) => ticket.isUsed);
         const unusedTickets = soldTickets.filter((ticket) => !ticket.isUsed);
+        const revenueWei = multiplyWeiAmount(ticketPrice, ticketsSold);
+        const ticketPriceEth = formatEthFromWei(ticketPrice);
+        const ticketPriceUsd = formatUsdFromWei(ticketPrice, this.state.ethUsdRate);
+        const revenueEth = formatEthFromWei(revenueWei);
+        const revenueUsd = formatUsdFromWei(revenueWei, this.state.ethUsdRate);
 
         return (
             <Layout>
                 <div className="tm-admin-page">
+                    <TopAlertStack
+                        alerts={[
+                            errorMessage ? {
+                                id: 'event-show-error',
+                                type: 'error',
+                                header: 'Oops!',
+                                content: errorMessage,
+                                onDismiss: () => this.setState({ errorMessage: '' })
+                            } : null,
+                            successMessage ? {
+                                id: 'event-show-success',
+                                type: 'success',
+                                header: 'Success!',
+                                content: successMessage,
+                                onDismiss: () => this.setState({ successMessage: '' })
+                            } : null
+                        ]}
+                    />
                     <section className="hero-panel">
                         <div className="hero-copy">
                             <span className="eyebrow">Event Admin Dashboard</span>
@@ -181,18 +212,23 @@ class EventShow extends Component {
                                 </div>
                                 <div className="side-row">
                                     <span>Price</span>
-                                    <strong>${ticketPrice}</strong>
+                                    <strong>{ticketPriceEth}</strong>
+                                </div>
+                                <div className="side-row">
+                                    <span>USD Value</span>
+                                    <strong>{ticketPriceUsd}</strong>
+                                </div>
+                                <div className="side-row">
+                                    <span>Revenue</span>
+                                    <strong>{revenueUsd}</strong>
+                                </div>
+                                <div className="side-row">
+                                    <span>Revenue ETH</span>
+                                    <strong>{revenueEth}</strong>
                                 </div>
                             </div>
                         </div>
                     </section>
-
-                    {errorMessage ? (
-                        <Message error header="Oops!" content={errorMessage} style={{ marginTop: '12px' }} />
-                    ) : null}
-                    {successMessage ? (
-                        <Message success header="Success!" content={successMessage} style={{ marginTop: '12px' }} />
-                    ) : null}
 
                     <section className="detail-grid">
                         <article className="detail-panel spotlight">

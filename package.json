@@ -18,6 +18,8 @@
   "dependencies": {
     "@zxing/browser": "^0.2.0",
     "@zxing/library": "^0.22.0",
+    "baseline-browser-mapping": "^2.10.25",
+    "caniuse-lite": "^1.0.30001791",
     "dotenv": "^16.4.5",
     "jsbarcode": "^3.12.3",
     "next": "^14.2.5",

@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
-import { Button, Message, Input } from 'semantic-ui-react';
+import { Button, Input } from 'semantic-ui-react';
 import AdminShell from '../../components/adminShell';
 import { persistAuditLog } from '../../ethereum/auditLog';
+import TopAlertStack from '../../components/topAlertStack';
 
 class AdminClients extends Component {
     state = {
@@ -277,6 +278,22 @@ class AdminClients extends Component {
                 heroDescription={`${activeCount} active / ${registeredCount} registered clients`}
                 topActions={<Button className="tm-btn" onClick={this.loadClients}>Refresh</Button>}
             >
+                <TopAlertStack
+                    alerts={[
+                        this.state.errorMessage ? {
+                            id: 'admin-clients-error',
+                            type: 'error',
+                            content: this.state.errorMessage,
+                            onDismiss: () => this.setState({ errorMessage: '' })
+                        } : null,
+                        this.state.successMessage ? {
+                            id: 'admin-clients-success',
+                            type: 'success',
+                            content: this.state.successMessage,
+                            onDismiss: () => this.setState({ successMessage: '' })
+                        } : null
+                    ]}
+                />
                 <section className="panel clients-panel">
                     <div className="panel-header">
                         <div className="heading-copy">
@@ -315,9 +332,6 @@ class AdminClients extends Component {
                             </div>
                         </div>
                     </div>
-
-                    {this.state.errorMessage ? <Message error content={this.state.errorMessage} /> : null}
-                    {this.state.successMessage ? <Message success content={this.state.successMessage} /> : null}
 
                     {filteredClients.length ? (
                         <div className="table-wrap">

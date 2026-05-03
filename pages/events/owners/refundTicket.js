@@ -1,9 +1,10 @@
 import React, { Component } from 'react';
-import { Form, Button, Input, Message } from 'semantic-ui-react';
+import { Form, Button, Input } from 'semantic-ui-react';
 import Layout from '../../../components/layout';
 import Event from '../../../ethereum/event';
 import web3 from '../../../ethereum/web3';
 import { Router } from '../../../routes';
+import TopAlertStack from '../../../components/topAlertStack';
 
 class RefundTicket extends Component {
     static async getInitialProps(props) {
@@ -50,6 +51,17 @@ class RefundTicket extends Component {
         return (
             <Layout>
                 <h3>Refund a Ticket</h3>
+                <TopAlertStack
+                    alerts={[
+                        this.state.errorMessage ? {
+                            id: 'refund-ticket-error',
+                            type: 'error',
+                            header: 'Oops!',
+                            content: this.state.errorMessage,
+                            onDismiss: () => this.setState({ errorMessage: '' })
+                        } : null
+                    ]}
+                />
 
                 <Form onSubmit={this.onSubmit} error={!!this.state.errorMessage}>
                     <Form.Field>
@@ -59,9 +71,6 @@ class RefundTicket extends Component {
                             onChange={event => this.setState({ ticketId: event.target.value })}
                         />
                     </Form.Field>
-                    {this.state.errorMessage && (
-                        <Message error header="Oops!" content={this.state.errorMessage} />
-                    )}
                     <Button loading={this.state.loading} primary>Refund!</Button>
                 </Form>
             </Layout>

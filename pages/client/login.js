@@ -1,8 +1,9 @@
 import React, { Component } from 'react';
-import { Button, Form, Message, Icon } from 'semantic-ui-react';
+import { Button, Form, Icon } from 'semantic-ui-react';
 import Layout from '../../components/layout';
 import { Router } from '../../routes';
 import { persistAuditLog } from '../../ethereum/auditLog';
+import TopAlertStack from '../../components/topAlertStack';
 
 class ClientLogin extends Component {
     state = {
@@ -208,10 +209,28 @@ class ClientLogin extends Component {
         return (
             <Layout>
                 <div className="tm-client-login-page">
+                    <TopAlertStack
+                        alerts={[
+                            this.state.errorMessage ? {
+                                id: 'client-auth-error',
+                                type: 'error',
+                                header: 'Authentication failed',
+                                content: this.state.errorMessage,
+                                onDismiss: () => this.setState({ errorMessage: '' })
+                            } : null,
+                            this.state.successMessage ? {
+                                id: 'client-auth-success',
+                                type: 'success',
+                                header: 'Success',
+                                content: this.state.successMessage,
+                                onDismiss: () => this.setState({ successMessage: '' })
+                            } : null
+                        ]}
+                    />
                     <section className="hero-shell">
                         <div className="hero-copy">
                             <span className="eyebrow">EVENTCOIN CLIENT</span>
-                            <h1>Ticketmaster-style Launchpad</h1>
+                            <h1>User Launchpad</h1>
                             <p>
                                 Sign in with your email or username to explore events, buy tickets, and manage barcode passes.
                             </p>
@@ -323,13 +342,6 @@ class ClientLogin extends Component {
                             </div>
                         )}
                     </section>
-
-                    {this.state.errorMessage ? (
-                        <Message error header="Authentication failed" content={this.state.errorMessage} />
-                    ) : null}
-                    {this.state.successMessage ? (
-                        <Message success header="Success" content={this.state.successMessage} />
-                    ) : null}
                 </div>
                 <style jsx>{`
                     .tm-client-login-page {
