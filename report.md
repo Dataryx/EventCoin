@@ -1,49 +1,76 @@
 # EventCoin — Project Report
 
-This report summarizes what people can do in EventCoin **without** describing how the software is built.
+This report lists **every attendee-facing and admin-facing capability** in the EventCoin app in plain language (no implementation detail).
 
 ---
 
-## User features
+## User (attendee / client) features
 
 | Feature | What it does |
 |--------|----------------|
-| **Home / welcome screen** | Introduces EventCoin and gives a simple choice: go browse and buy tickets, or open the organizer side of the platform. |
-| **Sign up & sign in** | Lets attendees create an account or log back in so the system knows who is shopping and keeps their tickets organized. |
-| **Event browsing** | Shows available events with search and simple groupings so people can explore what’s on (for example spotlight events, genres, or only events they already hold tickets for). |
-| **Event details before purchase** | Presents each event’s name, description, date, price, and how full it is so buyers can decide if they want tickets. |
-| **Ticket checkout** | Walks buyers through confirming how many tickets they want and paying so the purchase is finalized and recorded. |
-| **My tickets** | Collects everything the buyer owns in one place with a scannable code on each ticket—ready to show at the door. |
-| **Barcode helpers** | Makes it easier to carry the ticket in real life—for example copying or downloading the scannable ticket image when supported. |
-| **Single-ticket page** | Offers a focused view of one ticket when someone opens it from a link, useful for printing or scanning one entry pass. |
-| **Profile** | Shows the attendee’s identity details and confirms that a payment wallet is connected and ready before buying. |
-| **Purchase history** | Lists past ticket purchases with dates and amounts so buyers can remember what they bought and when. |
+| **Marketing home page** | Welcomes visitors, explains EventCoin in headline form, and highlights discovery, checkout, barcode entry, and admin control. |
+| **Choose your path** | From the home page, jump straight into the ticket-buyer experience or the staff control area. |
+| **Client portal pitch card** | Summarizes signing in, discovering events, paying for seats, and keeping barcode tickets ready in one place. |
+| **Registration** | Collects name, username, email, and password so a new attendee can open an account before buying. |
+| **Sign in** | Lets returning attendees unlock their profile, saved tickets, and checkout using their identity. |
+| **Sign out** | Ends the client session and returns the person to the sign-in experience. |
+| **Account menu** | From the dashboard, open profile details, open purchase history, or sign out from one menu. |
+| **Client dashboard header** | Shows who is signed in and whether a payment account is linked for purchases. |
+| **Live spending balance** | Displays how much spendable digital currency is available on the connected payment account before buying. |
+| **Personal summary tiles** | Shows how many events are listed overall, how many tickets you hold, and how many seats are still on sale across those listings. |
+| **“My Tickets” shortcut** | One-tap jump from the dashboard to the full ticket wallet page. |
+| **Event search** | Filter the catalog by event title or by the event’s public listing reference. |
+| **Category browsing** | Narrow the catalog with chips for all events, concerts, sports, experiences, or the single featured best-seller. |
+| **Event discovery cards** | Each card shows schedule, title, short description, presale/live/sold-out status, how many seats remain, sell-through progress, price in digital currency plus an estimated dollar value, and links to view or buy. |
+| **Fan-facing event page** | A buyer-oriented screen with the story, date, how many seats are left, price in two friendly formats, whether you are signed in, and whether a payment account is connected. |
+| **Seat quantity & cart** | Pick how many seats you want, add them to a simple cart, review cart size, and proceed to payment. |
+| **Purchase snapshot panel** | On the fan event page, shows available seats, sold seats, total capacity, and the listing reference for the show. |
+| **Barcodes on the event page** | After buying, see each seat for that show with a scannable barcode, the text code, and copy-to-clipboard for the code. |
+| **Checkout & payment** | Confirms you are signed in, connects the payment account when needed, buys one or many seats in a single visit, shows step-by-step status messages, confirms success with seat numbers, and explains common problems in plain language (for example payment cancelled or not enough funds). |
+| **Full ticket wallet** | Lists every pass you own across events, pulls in each show’s name/date when possible, and marks whether a pass is still valid or already used at entry. |
+| **Wallet-wide ticket stats** | Shows total passes, how many different events they cover, and the combined sticker price of those passes where pricing is known. |
+| **Barcode copy (wallet)** | Copy a ticket’s scan code text for email, chat, or another device. |
+| **Barcode download (wallet)** | Save the barcode artwork as an image file for offline use or printing. |
+| **Single-ticket detail page** | Deep link for one seat: verifies it belongs to you, prints event/story/date, seat number, barcode text, issued time, active vs used, and warns if entry already happened or the seat disappeared (for example after a refund). |
+| **Profile** | View full name, username, email, internal client reference, linked payment account, and the live balance panel for that account. |
+| **Transaction history** | Read-only diary of purchases: which show, rough date/time line, quantities, amounts in digital currency, and links or references when shown. |
 
 ---
 
-## Admin features
+## Admin (staff / organizer) features
 
 | Feature | What it does |
 |--------|----------------|
-| **Admin sign-in & sign-out** | Restricts the control room to authorized staff and ends the session safely when they’re done. |
-| **Operations dashboard** | Gives a big-picture snapshot of how many events are live, how many tickets sold, how many guests have already been admitted, and overall sales value; staff can search, sort, and (where available) export a summary for reporting. |
-| **Create events** | Lets staff publish a new event with its story, schedule, ticket price, and how many seats exist. |
-| **Events list** | Surfaces every event with quick facts like sales and check-in progress, with paths to deeper management screens. |
-| **Edit events** | Allows updates to an event’s information after it exists so listings stay accurate. |
-| **Detailed event view (organizer)** | Shows which tickets are sold and to whom, supporting day-of operations and reconciling the guest list. |
-| **Purchased tickets register** | Provides a consolidated, filterable list of issued tickets and whether each one is still unused or already redeemed at entry. |
-| **Ticket validation center** | Central menu that jumps staff to the right event so they can check tickets quickly at the gate. |
-| **Validate tickets at the door** | Confirms whether a presented ticket belongs to that event and is eligible for entry before the guest is waved through. |
-| **Mark admission (ticket used)** | Records that a ticket has already been scanned or consumed so it cannot be reused by someone else. |
-| **Ticket transfer tools** | Staff shortcuts to workflows that move a ticket between holders when your policy permits a handoff or correction. |
-| **Refund tooling** | Entry points to workflows that unwind a ticket sale when refunds are appropriate. |
-| **Client records** | Maintains searchable buyer profiles staff can edit or review when helping customers or auditing sign-ups. |
-| **Revenue overview** | Highlights total and per-event earning patterns so organizers can judge performance at a glance. |
-| **Payouts workspace** | A structured place to monitor money scheduled or sent to venues and partners (demonstration-style summaries in the product today). |
-| **Invoices workspace** | Shows invoice-style billing rows and payment status for finance follow-up (demonstration-style summaries in the product today). |
-| **Integrations** | Lists connected services—wallets, notifications, analytics-style hooks—and signals what still needs setup. |
-| **Audit log** | Keeps a time-ordered diary of noteworthy actions across the admin and client portals for accountability and troubleshooting. |
-| **Platform settings** | Holds brand-facing defaults such as platform name, public support contact, and standard fee placeholders staff expect to tune over time. |
+| **Admin sign-in landing** | Branded gate with short bullets about live operations, barcode checks, and tracking, plus a safe return link to the public home page. |
+| **Admin authentication** | Staff enter administrator credentials before any control-room page loads. |
+| **Persistent admin navigation** | Sidebar sections for dashboard, events, purchased tickets, validation, transfers, clients, then system areas for integrations, audit trail, and settings. |
+| **Admin session strip** | Always shows which admin identity is active and offers logout (logout is recorded in the activity diary). |
+| **Global “Create Event” action** | Available from the admin shell header so new shows can be launched without hunting through menus. |
+| **Operations dashboard — headline stats** | Four tiles: how many live listings exist, how many seats sold in total, gross sales in estimated dollars (with the matching digital-currency note), and how many seats were already marked used at the gate. |
+| **Operations dashboard — event board** | Splits listings into “still selling” versus “sold out,” shows presale/live/sold-out badges, per-show schedule blurb, sales counts, revenue snapshot, used-at-gate counts, links into the command center, and a quick “validate” shortcut. |
+| **Operations dashboard — search & sort** | Find a show by name or listing reference; order results newest-first or oldest-first. |
+| **Operations dashboard — export snapshot** | Download a consolidated operations report file (PDF-style export) capturing the current dashboard picture; shows success or error feedback. |
+| **Operations dashboard — validation shortcut** | Hero button jumps straight to the validation queue picker. |
+| **Events management page** | Same style of active vs sold-out boards with richer footers—open the command center, jump to barcode validation for that show, or open the listing editor. Includes “create event” prompts when empty. |
+| **Event command center (organizer view)** | All-in-one show page with marketing description, organizer identifiers, inventory snapshot (availability, sold count, seat price with dollar estimate, gross sales), ledger split between unused passes and passes already redeemed, and labeled buttons for every downstream workflow below. |
+| **Validate ticket (from command center)** | Opens the barcode validation flow for that specific show (see dedicated validation feature). |
+| **View ticket holders list** | Simple roster of accounts that currently own seats for the show—useful when reconciling attendees. |
+| **Mark a ticket used** | Form to punch in a seat number and finalize entry so it cannot scan again. |
+| **Request refund** | Form to pick a seat number and process a cancellation when policies allow—success returns you to the show page with a confirmation message. |
+| **Transfer ticket** | Form to move a numbered seat from the current holder to another account reference the organizer controls—shows confirmation or denial reasons people can understand. |
+| **Open client purchase preview** | Launches exactly the shopper-facing storefront for this show so staff can rehearse what fans experience. |
+| **Create event workflow** | Form for show name, long description, date/time text, ticket price (with approximate dollar hints), quantity of seats, and submission—with friendly errors if prerequisites fail. |
+| **Edit event listing details** | Update the wording and schedule that appear across admin and client catalogs for a show once it already exists—requires a real name, validates email-style fields where applicable, and routes back with a success banner. |
+| **Purchased tickets ledger** | One searchable table of every sold seat across all shows with event name, seat number, holder display name when known, holder account reference, and used vs unused filters. |
+| **Ticket validation center** | Menu of all shows; each row links to that show’s validation screen for door staff. |
+| **Ticket transfer center** | Menu of all shows; each row links to that show’s transfer form; offers to create a show if none exist. |
+| **Clients management board** | Search clients, filter all vs active vs registered-only, view last sign-in time, update name/username/email inline with duplicate checks, delete an account with confirmation (and clear that user’s local session if they match), and refresh the list from storage. |
+| **Revenue overview page** | KPI-style snapshot: total gross sales, average revenue per show, and total seats sold across the catalog. |
+| **Payouts workspace** | Table-style view of sample payout batches and statuses, framed as a future-ready finance monitor. |
+| **Invoices workspace** | Card/list view of sample invoices and whether they are paid, open, or overdue. |
+| **Integrations directory** | Cards for wallets, notifications, analytics-style hooks, each with a connection status label and a configure button placeholder. |
+| **Audit log** | Chronological feed of meaningful actions (client or admin) with timestamp, action label, success vs failure, actor name/role, optional wallet line, targeted record, route, expandable detail pills, manual refresh. |
+| **Platform settings form** | Editable placeholders for brand name displayed to the world, default support inbox, headline default fee percentage, and save button intent. |
 
 ---
 
