@@ -1,109 +1,71 @@
-# EventCoin DApp - Run Guide
+EventCoin
 
-This README explains exactly how to run this project with Ganache + Truffle, and what to replace in `.env`.
+Team Member Information
 
-## 1) Prerequisites
+Name - Sumit Singh
+CWID - 884416991
+Email - sumit_singh43@csu.fullerton.edu
 
-- Node.js 18+ (recommended)
-- npm
-- Ganache (GUI or CLI)
-- MetaMask extension
+Name- Vraj Patel
+CWID - 811318955
+Email- vrajpatel@csu.fullerton.edu
 
-## 2) Install dependencies
+------------------------------------------------------------------
 
-From project root:
+Original Project
 
-```bash
+Original project repository: https://github.com/Dataryx/EventCoin
+
+------------------------------------------------------------------
+
+Improvement Status
+
+No further Improvement. Made completely from scratch
+
+------------------------------------------------------------------
+
+How to Run the Project
+
+1. Install prerequisites:
+   - Node.js
+   - npm
+   - Ganache
+   - MetaMask
+2. Install dependencies from the project root:
+
+bash
 npm install
-```
 
-## 3) Start Ganache
 
-Start Ganache and keep it running.
+3. Start Ganache on 'http://127.0.0.1:7545'.
+4. Configure the environment file. Use '.env.example' as the reference and make sure these values are set in '.env':
 
-Use these values:
-
-- RPC URL: `http://127.0.0.1:7545`
-- Network ID / Chain ID: use Ganache default local chain (project accepts local IDs)
-- Keep at least 1 unlocked account with test ETH
-
-## 4) Update `.env` (what to replace)
-
-Open `.env` and set:
-
-```env
-MNEMONIC="YOUR_GANACHE_MNEMONIC_IF_NEEDED"
+env
+MNEMONIC="replace with Ganache wallet mnemonic"
 INFURA_ENDPOINT="http://127.0.0.1:7545"
 NEXT_PUBLIC_RPC_URL="http://127.0.0.1:7545"
-NEXT_PUBLIC_DIAMOND_ADDRESS=""
+NEXT_PUBLIC_DIAMOND_ADDRESS="replace with deployed contract address"
 ```
 
-Notes:
+5. Compile the smart contracts:
 
-- `NEXT_PUBLIC_DIAMOND_ADDRESS` can be blank before migration.
-- Migration script auto-updates `NEXT_PUBLIC_DIAMOND_ADDRESS` after deploy.
-- If you already have an old address there, migration will replace it.
-
-## 5) Compile contracts (Truffle)
-
-```bash
+bash
 npm run compile
-```
 
-## 6) Deploy contracts to Ganache (Truffle)
 
-Use reset migration to redeploy everything cleanly:
+6. Deploy the contracts to the local Ganache network:
 
-```bash
+bash
 npm run migrate:reset
-```
 
-This deploys Diamond + facets and writes the new deployed Diamond address into `.env`.
 
-## 7) Run frontend
+7. Start the web application:
 
-```bash
+bash
 npm run dev
-```
-
-Open:
-
-- [http://localhost:3000](http://localhost:3000)
-
-## 8) Connect MetaMask correctly
-
-In MetaMask:
-
-- Add/select network with RPC: `http://127.0.0.1:7545`
-- Use/import one of Ganache accounts
-- Ensure MetaMask network matches Ganache currently running
-
-If MetaMask is on another network, transactions will fail/revert.
-
-## 9) If you change contracts again
-
-Whenever you modify Solidity (function signatures, event fields, facets), run:
-
-```bash
-npm run compile
-npm run migrate:reset
-```
-
-Then restart frontend:
-
-```bash
-npm run dev
-```
-
-## 10) Common issues
-
-- `VM Exception while processing transaction: revert`
-  - Usually wrong network/address mismatch or facet signature mismatch.
-  - Fix: run `npm run migrate:reset`, confirm MetaMask on Ganache.
-
-- `exceeds block gas limit`
-  - Ticket supply too high for constructor loop.
-  - Try lower `ticketSupply` (for example 50-200).
 
 
-Alerts and status messages for payment, purchase success/failure in client side and Alerts and status messages  for event creation, ticket used, validation
+8. Open 'http://localhost:3000' in the browser.
+9. Connect MetaMask to the same Ganache network before using blockchain features.
+
+-----------------------------------------------------------------------------------
