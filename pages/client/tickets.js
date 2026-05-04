@@ -474,6 +474,11 @@ class ClientTicketsPage extends Component {
                             <Link route={`/client/ticket/${ticket.eventAddress}/${ticket.ticketId}`} legacyBehavior>
                                 <a className="ghost-link">View Ticket</a>
                             </Link>
+                            {!isUsed ? (
+                                <Link route={`/events/${ticket.eventAddress}/refundTicket?ticketId=${ticket.ticketId}`} legacyBehavior>
+                                    <a className="ghost-link">Request Refund</a>
+                                </Link>
+                            ) : null}
                             <Button
                                 className="copy-btn"
                                 onClick={async () => {

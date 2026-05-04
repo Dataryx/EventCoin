@@ -1,10 +1,11 @@
 import React, { Component } from 'react';
-import { Header, Message } from 'semantic-ui-react';
+import { Button, Header, Message } from 'semantic-ui-react';
 import Layout from '../../components/layout';
 import Event from '../../ethereum/event';
 import { getClientSession, isTicketOwnedByClient } from '../../ethereum/clientSession';
 import { reconcileClientTicketsForEvent } from '../../ethereum/clientTickets';
 import TicketBarcode from '../../components/ticketBarcode';
+import { Link } from '../../routes';
 
 class ClientTicketPage extends Component {
     static async getInitialProps(props) {
@@ -76,6 +77,11 @@ class ClientTicketPage extends Component {
                             {ticket ? <p><strong>Status:</strong> {isUsed ? 'Used' : 'Active'}</p> : null}
                             {isUsed ? (
                                 <Message warning content="This ticket has already been used and can no longer be used for entry." />
+                            ) : null}
+                            {ticket && !isUsed ? (
+                                <Link route={`/events/${this.props.eventAddress}/refundTicket?ticketId=${this.props.ticketId}`} legacyBehavior>
+                                    <a><Button primary size="small">Request Refund</Button></a>
+                                </Link>
                             ) : null}
                             {errorMessage ? <Message error content={errorMessage} /> : null}
                         </div>

@@ -8,6 +8,8 @@ import { applyStoredEventOverride } from '../../ethereum/eventOverrides';
 import { fetchEthUsdRate, formatEthFromWei, formatUsdFromWei, multiplyWeiAmount } from '../../utils/ethPricing';
 import TopAlertStack from '../../components/topAlertStack';
 
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
 class AdminEvents extends Component {
     static async getInitialProps(props) {
         const successMessage = props?.query?.successMessage || '';
@@ -26,11 +28,15 @@ class AdminEvents extends Component {
                 const ticketsSold = parseInt(summary[3], 10) || 0;
 
                 let ticketsUsed = 0;
-                for (let ticketId = 1; ticketId <= ticketsSold; ticketId += 1) {
+                for (let ticketId = 0; ticketId < ticketSupply; ticketId += 1) {
                     try {
                         const ticket = await event.methods.tickets(ticketId).call();
-                        const isUsed = ticket.isUsed || ticket[1];
-                        if (isUsed) ticketsUsed += 1;
+                        const ownerAddress = ticket.owner || ticket[0] || '';
+                        const isUsed = Boolean(ticket.isUsed || ticket[1]);
+
+                        if (ownerAddress && ownerAddress.toLowerCase() !== ZERO_ADDRESS && isUsed) {
+                            ticketsUsed += 1;
+                        }
                     } catch (e) {
                         // Ignore invalid ticket lookups and continue.
                     }

@@ -9,12 +9,13 @@ import TopAlertStack from '../../../components/topAlertStack';
 class RefundTicket extends Component {
     static async getInitialProps(props) {
         return {
-            contractAddress: props.query.address
+            contractAddress: props.query.address,
+            initialTicketId: props.query.ticketId || ''
         };
     }
 
     state = {
-        ticketId: '',
+        ticketId: this.props.initialTicketId || '',
         errorMessage: '',
         loading: false
     };

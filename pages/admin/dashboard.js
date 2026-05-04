@@ -35,11 +35,15 @@ class AdminDashboard extends Component {
                 const ticketsSold = parseInt(summary[3], 10) || 0;
 
                 let ticketsUsed = 0;
-                for (let ticketId = 1; ticketId <= ticketsSold; ticketId += 1) {
+                for (let ticketId = 0; ticketId < ticketSupply; ticketId += 1) {
                     try {
                         const ticket = await event.methods.tickets(ticketId).call();
-                        const isUsed = ticket.isUsed || ticket[1];
-                        if (isUsed) ticketsUsed += 1;
+                        const ownerAddress = ticket.owner || ticket[0] || '';
+                        const isUsed = Boolean(ticket.isUsed || ticket[1]);
+
+                        if (ownerAddress && ownerAddress.toLowerCase() !== ZERO_ADDRESS && isUsed) {
+                            ticketsUsed += 1;
+                        }
                     } catch (e) {
                         // If ticket lookup fails for this id, skip.
                     }
@@ -737,7 +741,6 @@ class AdminDashboard extends Component {
                         <Link route="/admin/ticket-validation" legacyBehavior>
                             <a><Button color="blue" className="tm-hero-btn">Open Validation Queue</Button></a>
                         </Link>
-                        <Button basic inverted className="tm-hero-btn ghost">View Smart Contract</Button>
                     </>
                 )}
             >

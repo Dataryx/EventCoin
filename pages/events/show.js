@@ -1,8 +1,6 @@
 import React, { Component } from 'react';
-import { Icon } from 'semantic-ui-react';
 import Layout from '../../components/layout';
 import Event from '../../ethereum/event';
-import { Link } from '../../routes';
 import TopAlertStack from '../../components/topAlertStack';
 import { fetchEthUsdRate, formatEthFromWei, formatUsdFromWei, multiplyWeiAmount } from '../../utils/ethPricing';
 
@@ -81,63 +79,6 @@ class EventShow extends Component {
                     </li>
                 ))}
             </ul>
-        );
-    }
-
-    renderActionDeck() {
-        const { contractAddress } = this.props;
-        const actions = [
-            {
-                label: 'Validate Ticket Barcode',
-                route: `/events/${contractAddress}/validate`,
-                icon: 'barcode',
-                primary: true
-            },
-            {
-                label: 'View Owners',
-                route: `/events/${contractAddress}/owners`,
-                icon: 'users',
-                primary: true
-            },
-            {
-                label: 'Use a Ticket',
-                route: `/events/${contractAddress}/useTicket`,
-                icon: 'check circle',
-                primary: false
-            },
-            {
-                label: 'Request a Refund',
-                route: `/events/${contractAddress}/refundTicket`,
-                icon: 'undo',
-                primary: false
-            },
-            {
-                label: 'Transfer Ticket',
-                route: `/events/${contractAddress}/transferTicket`,
-                icon: 'exchange',
-                primary: false
-            },
-            {
-                label: 'Open Client Purchase View',
-                route: `/events/${contractAddress}/client`,
-                icon: 'external',
-                primary: false
-            }
-        ];
-
-        return (
-            <div className="action-button-grid">
-                {actions.map((action) => (
-                    <Link legacyBehavior key={action.route} route={action.route}>
-                        <a className={`action-button ${action.primary ? 'primary' : 'secondary'}`}>
-                            <span className="button-icon">
-                                <Icon name={action.icon} />
-                            </span>
-                            <span className="button-label">{action.label}</span>
-                        </a>
-                    </Link>
-                ))}
-            </div>
         );
     }
 
@@ -270,15 +211,6 @@ class EventShow extends Component {
                                 {this.renderTicketList(usedTickets, 'No tickets have been used yet.')}
                             </article>
                         </div>
-                    </section>
-
-                    <section className="action-rail">
-                        <div className="action-rail-head">
-                            <span className="section-kicker">Operations</span>
-                            <h3>Action Center</h3>
-                            <p>Launch the most important admin workflows from one clean control surface.</p>
-                        </div>
-                        {this.renderActionDeck()}
                     </section>
                 </div>
 
@@ -429,13 +361,6 @@ class EventShow extends Component {
                         line-height: 1.7;
                         word-break: break-all;
                     }
-                    .action-rail {
-                        padding: 22px;
-                        border-radius: 24px;
-                        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-                        border: 1px solid #dbeafe;
-                        box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
-                    }
                     .ticket-ledger {
                         padding: 22px;
                         border-radius: 24px;
@@ -530,74 +455,6 @@ class EventShow extends Component {
                         color: #64748b;
                         font-size: 0.9rem;
                     }
-                    .action-rail-head h3 {
-                        margin: 0 0 8px;
-                        color: #0f172a;
-                        font-family: 'Barlow Condensed', sans-serif;
-                        font-size: 2rem;
-                        text-transform: uppercase;
-                        letter-spacing: 0.04em;
-                    }
-                    .action-rail-head p {
-                        margin: 0 0 16px;
-                        color: #64748b;
-                        max-width: 640px;
-                        line-height: 1.6;
-                    }
-                    .action-button-grid {
-                        display: grid;
-                        grid-template-columns: repeat(3, minmax(0, 1fr));
-                        gap: 12px;
-                    }
-                    .action-button {
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 10px;
-                        min-height: 58px;
-                        padding: 14px 18px;
-                        border-radius: 18px;
-                        font-weight: 800;
-                        letter-spacing: 0.01em;
-                        text-align: center;
-                        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-                    }
-                    .action-button.primary {
-                        background: linear-gradient(135deg, #002060 0%, #026cdf 100%);
-                        border: 1px solid transparent;
-                        color: white;
-                        box-shadow: 0 16px 32px rgba(2, 108, 223, 0.2);
-                    }
-                    .action-button.secondary {
-                        background: white;
-                        border: 1px solid #dbe4f0;
-                        color: #0f172a;
-                    }
-                    .action-button:hover {
-                        transform: translateY(-1px);
-                        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-                    }
-                    .button-icon {
-                        width: 32px;
-                        height: 32px;
-                        border-radius: 10px;
-                        display: inline-flex;
-                        align-items: center;
-                        justify-content: center;
-                        flex-shrink: 0;
-                    }
-                    .action-button.primary .button-icon {
-                        background: rgba(255, 255, 255, 0.16);
-                    }
-                    .action-button.secondary .button-icon {
-                        background: #eff6ff;
-                        color: #026cdf;
-                    }
-                    .button-label {
-                        display: inline-block;
-                        font-size: 0.92rem;
-                        line-height: 1.3;
-                    }
                     @media (max-width: 980px) {
                         .hero-panel,
                         .detail-grid {
@@ -606,9 +463,6 @@ class EventShow extends Component {
                         .ticket-ledger-grid {
                             grid-template-columns: 1fr;
                         }
-                        .action-button-grid {
-                            grid-template-columns: repeat(2, minmax(0, 1fr));
-                        }
                     }
                     @media (max-width: 680px) {
                         .hero-panel {
@@ -616,9 +470,6 @@ class EventShow extends Component {
                         }
                         .hero-copy h1 {
                             font-size: 2.4rem;
-                        }
-                        .action-button-grid {
-                            grid-template-columns: 1fr;
                         }
                     }
                 `}</style>
